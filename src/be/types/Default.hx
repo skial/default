@@ -19,15 +19,19 @@ using tink.CoreApi;
 
     @:to public static #if !debug inline #end function asObject(v:Default<{}>):{} return v == null ? {} : v.get();
     @:to public static #if !debug inline #end function asStringyArray<T>(v:Default<Array<T>>):String return v == null ? '[]' : '' + v.get();
+    @:to public static #if !debug inline #end function asString<T:String>(v:Default<T>):String return v == null ? '' : v.get();
     @:to public #if !debug inline #end function asFloat():Float return this == null ? .0 : (cast this:Float);
     @:to public #if !debug inline #end function asInt():Int return this == null ? 0 : (cast this:Int);
-    @:to public #if !debug inline #end function asString():String return this == null ? '' : (cast this:String);
-    //@:to public #if !debug inline #end function asArray<A>():Array<A> return this == null ? [] : (cast this:Array<A>);
+    //@:to public #if !debug inline #end function asString():String return this == null ? '' : (cast this:String);
+    @:to public #if !debug inline #end function asArray<A>():Array<A> return this == null ? [] : (cast this:Array<A>);
     //@:to public #if !debug inline #end function asDynamic():Dynamic return this == null ? {} : (cast this:Dynamic);
 
-    @:from public static macro function fromNILL<T>(v:ExprOf<NILL>):ExprOf<be.types.Default<T>> {
+    @:from public static macro function fromNILL<T>(v:ExprOf<NIL>):ExprOf<be.types.Default<T>> {
         var v = typeToValue( Context.getExpectedType() );
         var ctype = Context.getExpectedType().toComplex();
+        #if debug
+        trace( v.toString() );
+        #end
         return macro new be.types.Default<$ctype>($v);
     }
 
@@ -55,10 +59,19 @@ using tink.CoreApi;
             case TAnonymous(_.get()=>anon):
                 var fields = [];
                 for (field in anon.fields) {
+                    //trace(field);
                     fields.push( {field:field.name, expr: typeToValue(field.type)} );
 
                 }
                 return macro cast $e{{expr:EObjectDecl(fields), pos:Context.currentPos()}};
+
+            case TType(_.get()=>td, p):
+                return if (td.name == 'Null') {
+                    typeToValue( p[0] );
+                } else {
+                    typeToValue( td.type );
+
+                }
 
             case x: trace(x);
         }
@@ -67,38 +80,7 @@ using tink.CoreApi;
 
     #end
 
-    /*@:from public static macro function fromStruct<T:{}>(struct:ExprOf<T>):Expr {
-        var results = [];
-        trace(struct.toString());
-        switch struct.typeof() {
-            case Success(type): switch type {
-                case TAnonymous(_.get() => anon):
-                    for (field in anon.fields) {
-                        var name = field.name;
-                        var type = field.type.toComplex();
-                        var _default = macro:be.types.Default<$type>;
-
-                        results.push( macro @:mergeBlock {
-                            var def = $e{fromType(field.type)};
-                            if ($struct != null) def = ($struct.$name:$_default);
-                            def;
-                         } );
-
-                    }
-
-                case _:
-
-            }
-                
-
-            case _:
-
-        }
-
-        return macro @:mergeBlock $b{results};
-    }*/
-
-    #if macro
+    /*#if macro
     @:from public static inline function fromComplex(v:ComplexType):Expr {
         return switch v.toType() {
             case Success(t): fromType(t);
@@ -117,6 +99,6 @@ using tink.CoreApi;
         
         return r;
     }
-    #end
+    #end*/
 
 }
