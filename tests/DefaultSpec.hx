@@ -1,7 +1,7 @@
 package ;
 
 import utest.Assert;
-import be.types.NILL;
+import be.types.NIL;
 import be.types.Default;
 
 @:keep class DefaultSpec {
@@ -19,7 +19,7 @@ import be.types.Default;
     }
 
     public function testString() {
-        var a:Default<String> = NILL;
+        var a:Default<String> = NIL;
         var b:Default<String> = 'hello';
         equals('', a);
         equals('hello', b);
@@ -33,7 +33,7 @@ import be.types.Default;
     }
 
     public function testInt() {
-        var a:Default<Int> = NILL;
+        var a:Default<Int> = NIL;
         var b:Default<Int> = 1000;
         equals(0, a);
         equals(1000, b);
@@ -47,7 +47,7 @@ import be.types.Default;
     }
 
     public function testFloat() {
-        var a:Default<Float> = NILL;
+        var a:Default<Float> = NIL;
         var b:Default<Float> = 1000.123;
         equals(.0, a);
         equals(1000.123, b);
@@ -61,7 +61,7 @@ import be.types.Default;
     }
 
     public function testObject() {
-        var a:Default<{}> = NILL;
+        var a:Default<{}> = NIL;
         var b:Default<{a:String}> = {a:'1'};
         same({}, a);
         same({a:'1'}, cast b);
@@ -75,7 +75,7 @@ import be.types.Default;
     }
 
     public function testTypedObject() {
-        var b:Default<{a:String}> = NILL;
+        var b:Default<{a:String}> = NIL;
         same({a:''}, cast b);
     }
 
@@ -86,7 +86,7 @@ import be.types.Default;
     }*/
 
     public function testArray() {
-        var a:Default<Array<String>> = NILL;
+        var a:Default<Array<String>> = NIL;
         var b:Default<Array<String>> = ['a', 'b'];
         Assert.equals( 0, a.length );
         Assert.equals( 2, b.length );
