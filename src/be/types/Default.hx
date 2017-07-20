@@ -22,12 +22,13 @@ using tink.CoreApi;
     @:to public #if !debug inline #end function asFloat():Float return this == null ? .0 : (cast this:Float);
     @:to public #if !debug inline #end function asInt():Int return this == null ? 0 : (cast this:Int);
     @:to public #if !debug inline #end function asString():String return this == null ? '' : (cast this:String);
-    //@:to public #if !debug inline #end function asArray<A>():Array<A> return this == null ? [] : (cast this:Array<A>);
+    @:to public #if !debug inline #end function asArray<A>():Array<A> return this == null ? [] : (cast this:Array<A>);
     //@:to public #if !debug inline #end function asDynamic():Dynamic return this == null ? {} : (cast this:Dynamic);
 
     @:from public static macro function fromNILL<T>(v:ExprOf<NILL>):ExprOf<be.types.Default<T>> {
         var v = typeToValue( Context.getExpectedType() );
         var ctype = Context.getExpectedType().toComplex();
+        trace( v.toString() );
         return macro new be.types.Default<$ctype>($v);
     }
 
@@ -55,10 +56,19 @@ using tink.CoreApi;
             case TAnonymous(_.get()=>anon):
                 var fields = [];
                 for (field in anon.fields) {
+                    //trace(field);
                     fields.push( {field:field.name, expr: typeToValue(field.type)} );
 
                 }
                 return macro cast $e{{expr:EObjectDecl(fields), pos:Context.currentPos()}};
+
+            case TType(_.get()=>td, p):
+                return if (td.name == 'Null') {
+                    typeToValue( p[0] );
+                } else {
+                    typeToValue( td.type );
+
+                }
 
             case x: trace(x);
         }
