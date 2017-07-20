@@ -1,0 +1,17 @@
+{
+    "name": "b.e_default",
+    "license": "MIT",
+    "classPath": "src",
+    "tags": ["B.E"],
+    "description": "B.E default.",
+    "contributors": ["skial"],
+    "releasenote": "Initial Release",
+    "version": "0.0.1-alpha",
+    "url": "https://gitlab.com/b.e",
+    "dependencies": {
+        "tink_core": "",
+        "tink_macro": "",
+        "utest": ""
+    }
+  }
+  
