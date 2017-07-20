@@ -13,6 +13,8 @@ using tink.CoreApi;
 // @see https://github.com/HaxeFoundation/haxe/issues/4756
 @:forward abstract Default<T>(T) from T {
 
+    public #if !debug inline #end function new(v) this = v;
+
     public #if !debug inline #end function get():T return this;
 
     @:to public static #if !debug inline #end function asObject(v:Default<{}>):{} return v == null ? {} : v.get();
@@ -23,10 +25,10 @@ using tink.CoreApi;
     //@:to public #if !debug inline #end function asArray<A>():Array<A> return this == null ? [] : (cast this:Array<A>);
     //@:to public #if !debug inline #end function asDynamic():Dynamic return this == null ? {} : (cast this:Dynamic);
 
-    @:from public static macro function fromNILL(v:ExprOf<NILL>):Expr {
+    @:from public static macro function fromNILL<T>(v:ExprOf<NILL>):ExprOf<be.types.Default<T>> {
         var v = typeToValue( Context.getExpectedType() );
         var ctype = Context.getExpectedType().toComplex();
-        return macro ($v:be.types.Default<$ctype>);
+        return macro new be.types.Default<$ctype>($v);
     }
 
     #if (macro||eval)
