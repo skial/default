@@ -11,7 +11,7 @@ Meant as a replacement for `null`.
 ### `Default<T>`
 
 ```Haxe
-abstract Default<T>(T) {
+@:forward abstract Default<T>(T) {
     // Unsafe access, does not check for nullness.
     public function get():T;
     // All the following check for nullness.
