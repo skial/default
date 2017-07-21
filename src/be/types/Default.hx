@@ -22,9 +22,7 @@ using tink.CoreApi;
     @:to public static #if !debug inline #end function asString<T:String>(v:Default<T>):String return v == null ? '' : v.get();
     @:to public #if !debug inline #end function asFloat():Float return this == null ? .0 : (cast this:Float);
     @:to public #if !debug inline #end function asInt():Int return this == null ? 0 : (cast this:Int);
-    //@:to public #if !debug inline #end function asString():String return this == null ? '' : (cast this:String);
     @:to public #if !debug inline #end function asArray<A>():Array<A> return this == null ? [] : (cast this:Array<A>);
-    //@:to public #if !debug inline #end function asDynamic():Dynamic return this == null ? {} : (cast this:Dynamic);
 
     @:from public static macro function fromNILL<T>(v:ExprOf<NIL>):ExprOf<be.types.Default<T>> {
         var v = typeToValue( Context.getExpectedType() );
@@ -45,7 +43,33 @@ using tink.CoreApi;
                 switch cls.name {
                     case 'Array': return macro [];
                     case 'String': return macro '';
-                    case x: trace( x );
+                    case x: 
+                        if (cls.constructor != null) {
+                            var tpath = type.toComplex().toString().asTypePath();
+
+                            switch cls.constructor.get().type {
+                                case TFun(arg, _):
+                                    if (cls.meta.has(':structInit')) {
+                                        var call = [];
+                                        for (a in arg) call.push( {field:a.name, expr:typeToValue(a.t)} );
+                                        return {expr:EObjectDecl(call), pos:Context.currentPos()};
+
+                                    } else {
+                                        var call = [];
+                                        for (a in arg) call.push( typeToValue(a.t) );
+                                        return macro new $tpath($a{call});
+
+                                    }
+
+                                case _:
+
+                            }
+
+                        } else {
+                            trace( x );
+
+                        }
+
                 }
 
             case TAbstract(_.get()=>abs, _):
