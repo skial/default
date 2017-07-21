@@ -8,7 +8,7 @@
 
 Meant as a replacement for `null`.
 
-### `Default`
+### `Default<T>`
 
 ```Haxe
 abstract Default<T>(T) {
