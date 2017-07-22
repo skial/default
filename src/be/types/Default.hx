@@ -8,6 +8,7 @@ using tink.MacroApi;
 using haxe.macro.Context;
 #end
 
+using Std;
 using tink.CoreApi;
 
 // @see https://github.com/HaxeFoundation/haxe/issues/4756
@@ -75,7 +76,7 @@ using tink.CoreApi;
                                     
                                     var id = 'def${counter++}';
                                     toplevel.set(stype, {name:id, type:null, expr:result});
-                                    result = macro $i{id};
+                                    result = macro cast $i{id};
 
                                 case _:
 
@@ -103,20 +104,29 @@ using tink.CoreApi;
                     var ct = field.type.toComplex();
                     var id = ct.toString();
                     var n = field.name;
+                    var e = typeToValue(field.type, toplevel);
                     var v = toplevel.exists(id) ? toplevel.get(id) : null;
-                    var e = v == null ? typeToValue(field.type, toplevel) : v.expr;
+                    var vn = 'def${counter-1}';
                     
+                    if (v != null) {
+                        e = v.expr;
+                        vn = v.name;
+
+                    }
+
                     switch e {
-                        case {expr:EConst(CIdent(id))}:
-                            toplevel.set(field.name + counter + stype, {name:'def${counter++}', type:field.type.toComplex(), expr:macro $i{'def${counter}'}.$n = $i{'def$counter'}});
+                        case {expr:EConst(CIdent(value))} if (value == 'null'):
+                            vn = 'def${vn.substring(3).parseInt() + 1}';
+                            toplevel.set(field.name + counter + stype, {name:'def${counter+1}', type:ct, expr:macro @:tanonfield $i{'def${counter}'}.$n = $i{vn}});
 
                         case x:
+
                     }
                     
                     fields.push( {field:field.name, expr: macro ($e:$ct)} );
 
                 }
-                result = macro $e{{expr:EObjectDecl(fields), pos:Context.currentPos()}};
+                result = macro @:tanonymous $e{{expr:EObjectDecl(fields), pos:Context.currentPos()}};
 
             case TType(_.get()=>td, p):
                 if (td.name == 'Null') {
@@ -126,7 +136,7 @@ using tink.CoreApi;
                     var id = 'def${counter++}';
                     toplevel.set(stype, {name:id, type:null, expr:macro null});
                     result = typeToValue( td.type, toplevel );
-                    toplevel.set('stype${counter}', {name:id = 'def${counter++}', type:null, expr:result});
+                    toplevel.set('stype${counter}', {name:id = 'def${counter++}', type:null, expr:macro @:ttype $result});
                     result = macro $i{id};  
 
                 }              
@@ -139,15 +149,18 @@ using tink.CoreApi;
         }
 
         if (first) {
+            var vars = [];
             var exprs = [];
             
             for (key in toplevel.keys()) {
                 var v = toplevel.get(key);
                 if (v.expr == null) v.expr = macro null;
-                exprs.push( {expr:EVars([v]), pos:Context.currentPos()} );
-
+                vars.push(v);
 
             }
+
+            vars.sort( (a,b)->a.name.substring(3).parseInt() > b.name.substring(3).parseInt() ? 1 : 0 );
+            exprs = vars.map(v->{expr:EVars([v]), pos:Context.currentPos()});
 
             if (exprs.length > 0) {
                 exprs.push(macro $result);
