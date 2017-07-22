@@ -4,6 +4,29 @@ import utest.Assert;
 import be.types.NIL;
 import be.types.Default;
 
+class A {
+
+    public var a:String;
+    public var b:Default<String> = NIL;
+    public var c:Int;
+    public var d:Int;
+
+    public function new(a:String, ?c:Int, ?d:Default<Int>) {
+        this.a = a;
+        this.c = c;
+        this.d = d;
+    }
+
+}
+
+typedef C = {
+    var a:String;
+    var b:Default<Int>;
+    var c(default, default):Float;
+    var d(default, default):Default<Array<Int>>;
+    var e:C;
+}
+
 @:keep class DefaultSpec {
 
     public function new() {
@@ -92,6 +115,30 @@ import be.types.Default;
         Assert.equals( 2, b.length );
         Assert.equals('' + [], '' + a);
         Assert.equals('' + ['a', 'b'], '' + b);
+    }
+
+    public function testClasses() {
+        var a:Default<A> = NIL;
+
+        equals( '', a.a );
+        equals( '', a.b );
+        equals( 0, a.c );
+        equals( 0, a.d );
+
+    }
+
+    public function testTypedefs() {
+        var c:Default<C> = NIL;
+
+        equals( '', c.a );
+        equals( 0, c.b );
+        equals( .0, c.c );
+        equals( '' + [], '' + c.d );
+
+        equals( '', c.e.a );
+        equals( 0, c.e.b );
+        equals( .0, c.e.c );
+        equals( '' + [], '' + c.e.d );
     }
 
 }

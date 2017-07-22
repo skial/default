@@ -25,6 +25,7 @@ using tink.CoreApi;
     @:to public #if !debug inline #end function asArray<A>():Array<A> return this == null ? [] : (cast this:Array<A>);
 
     @:from public static macro function fromNILL<T>(v:ExprOf<NIL>):ExprOf<be.types.Default<T>> {
+        counter = 0;
         var v = typeToValue( Context.getExpectedType() );
         var ctype = Context.getExpectedType().toComplex();
         #if debug
@@ -34,32 +35,47 @@ using tink.CoreApi;
     }
 
     #if (macro||eval)
-    private static function typeToValue(type:Type):Expr {
-        switch type {
+    private static var counter = 0;
+    private static function typeToValue(type:Type, ?toplevel:Map<String, Var>):Expr {
+        var result = null;
+        var ctype = type.toComplex();
+        var stype = ctype.toString();
+
+        var first = toplevel == null;
+        if (first) toplevel = new Map();
+
+        if (!toplevel.exists(stype)) switch type {
             case TAbstract(_.get()=>abs, p) if (abs.name == 'Default'):
-                return typeToValue(p[0]);
+                result = typeToValue(p[0], toplevel);
             
             case TInst(_.get()=>cls, _):
                 switch cls.name {
-                    case 'Array': return macro [];
-                    case 'String': return macro '';
+                    case 'Array': result = macro [];
+                    case 'String': result = macro '';
                     case x: 
                         if (cls.constructor != null) {
-                            var tpath = type.toComplex().toString().asTypePath();
+                            var tpath = stype.asTypePath();
 
                             switch cls.constructor.get().type {
                                 case TFun(arg, _):
                                     if (cls.meta.has(':structInit')) {
                                         var call = [];
-                                        for (a in arg) call.push( {field:a.name, expr:typeToValue(a.t)} );
-                                        return {expr:EObjectDecl(call), pos:Context.currentPos()};
+                                        for (a in arg) call.push( {field:a.name, expr:typeToValue(a.t, toplevel)} );
+                                        result = {expr:EObjectDecl(call), pos:Context.currentPos()};
 
                                     } else {
                                         var call = [];
-                                        for (a in arg) call.push( typeToValue(a.t) );
-                                        return macro new $tpath($a{call});
+                                        for (a in arg) {
+                                            var e = typeToValue(a.t, toplevel);
+                                            call.push( e );
+                                        }
+                                        result = macro new $tpath($a{call});
 
                                     }
+                                    
+                                    var id = 'def${counter++}';
+                                    toplevel.set(stype, {name:id, type:null, expr:result});
+                                    result = macro $i{id};
 
                                 case _:
 
@@ -74,32 +90,74 @@ using tink.CoreApi;
 
             case TAbstract(_.get()=>abs, _):
                 switch abs.name {
-                    case 'Int': return macro 0;
-                    case 'Float': return macro .0;
+                    case 'Int': result = macro 0;
+                    case 'Float': result = macro .0;
                     case x: trace(x);
 
                 }
 
             case TAnonymous(_.get()=>anon):
                 var fields = [];
+
                 for (field in anon.fields) {
-                    //trace(field);
-                    fields.push( {field:field.name, expr: typeToValue(field.type)} );
+                    var ct = field.type.toComplex();
+                    var id = ct.toString();
+                    var n = field.name;
+                    var v = toplevel.exists(id) ? toplevel.get(id) : null;
+                    var e = v == null ? typeToValue(field.type, toplevel) : v.expr;
+                    
+                    switch e {
+                        case {expr:EConst(CIdent(id))}:
+                            toplevel.set(field.name + counter + stype, {name:'def${counter++}', type:field.type.toComplex(), expr:macro $i{'def${counter}'}.$n = $i{'def$counter'}});
+
+                        case x:
+                    }
+                    
+                    fields.push( {field:field.name, expr: macro ($e:$ct)} );
 
                 }
-                return macro cast $e{{expr:EObjectDecl(fields), pos:Context.currentPos()}};
+                result = macro $e{{expr:EObjectDecl(fields), pos:Context.currentPos()}};
 
             case TType(_.get()=>td, p):
-                return if (td.name == 'Null') {
-                    typeToValue( p[0] );
-                } else {
-                    typeToValue( td.type );
+                if (td.name == 'Null') {
+                    result = typeToValue( p[0], toplevel );
 
-                }
+                } else {
+                    var id = 'def${counter++}';
+                    toplevel.set(stype, {name:id, type:null, expr:macro null});
+                    result = typeToValue( td.type, toplevel );
+                    toplevel.set('stype${counter}', {name:id = 'def${counter++}', type:null, expr:result});
+                    result = macro $i{id};  
+
+                }              
 
             case x: trace(x);
+        } else {
+            var v = toplevel.get(stype);
+            result = macro $i{v.name};
+
         }
-        return macro null;
+
+        if (first) {
+            var exprs = [];
+            
+            for (key in toplevel.keys()) {
+                var v = toplevel.get(key);
+                if (v.expr == null) v.expr = macro null;
+                exprs.push( {expr:EVars([v]), pos:Context.currentPos()} );
+
+
+            }
+
+            if (exprs.length > 0) {
+                exprs.push(macro $result);
+                result = macro @:mergeBlock $b{exprs};
+
+            }
+
+        }
+        
+        return result;
     }
 
     #end
