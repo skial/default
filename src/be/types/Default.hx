@@ -11,6 +11,12 @@ using haxe.macro.Context;
 using Std;
 using tink.CoreApi;
 
+@:enum private abstract Consts(String) from String to String {
+    var _Default = 'Default';
+    var _Def = 'def';
+    var _StructInit = ':structInit';
+}
+
 // @see https://github.com/HaxeFoundation/haxe/issues/4756
 @:forward abstract Default<T>(T) from T {
 
@@ -46,7 +52,7 @@ using tink.CoreApi;
         if (first) toplevel = new Map();
 
         if (!toplevel.exists(stype)) switch type {
-            case TAbstract(_.get()=>abs, p) if (abs.name == 'Default'):
+            case TAbstract(_.get()=>abs, p) if (abs.name == _Default):
                 result = typeToValue(p[0], toplevel);
             
             case TInst(_.get()=>cls, _):
@@ -59,7 +65,7 @@ using tink.CoreApi;
 
                             switch cls.constructor.get().type {
                                 case TFun(arg, _):
-                                    if (cls.meta.has(':structInit')) {
+                                    if (cls.meta.has(_StructInit)) {
                                         var call = [];
                                         for (a in arg) call.push( {field:a.name, expr:typeToValue(a.t, toplevel)} );
                                         result = {expr:EObjectDecl(call), pos:Context.currentPos()};
@@ -74,7 +80,7 @@ using tink.CoreApi;
 
                                     }
                                     
-                                    var id = 'def${counter++}';
+                                    var id = '$_Def${counter++}';
                                     toplevel.set(stype, {name:id, type:null, expr:result});
                                     result = macro cast $i{id};
 
@@ -106,7 +112,7 @@ using tink.CoreApi;
                     var n = field.name;
                     var e = typeToValue(field.type, toplevel);
                     var v = toplevel.exists(id) ? toplevel.get(id) : null;
-                    var vn = 'def${counter-1}';
+                    var vn = '$_Def${counter-1}';
                     
                     if (v != null) {
                         e = v.expr;
@@ -116,8 +122,8 @@ using tink.CoreApi;
 
                     switch e {
                         case {expr:EConst(CIdent(value))} if (value == 'null'):
-                            vn = 'def${vn.substring(3).parseInt() + 1}';
-                            toplevel.set(field.name + counter + stype, {name:'def${counter+1}', type:ct, expr:macro @:tanonfield $i{'def${counter}'}.$n = $i{vn}});
+                            vn = '$_Def${vn.substring(3).parseInt() + 1}';
+                            toplevel.set(field.name + counter + stype, {name:'$_Def${counter+1}', type:ct, expr:macro @:tanonfield $i{'$_Def$counter'}.$n = $i{vn}});
 
                         case x:
 
@@ -133,10 +139,10 @@ using tink.CoreApi;
                     result = typeToValue( p[0], toplevel );
 
                 } else {
-                    var id = 'def${counter++}';
+                    var id = '$_Def${counter++}';
                     toplevel.set(stype, {name:id, type:null, expr:macro null});
                     result = typeToValue( td.type, toplevel );
-                    toplevel.set('stype${counter}', {name:id = 'def${counter++}', type:null, expr:macro @:ttype $result});
+                    toplevel.set('$stype${counter}', {name:id = '$_Def${counter++}', type:null, expr:macro @:ttype $result});
                     result = macro $i{id};  
 
                 }              
