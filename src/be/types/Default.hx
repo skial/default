@@ -31,7 +31,7 @@ using tink.CoreApi;
     @:to public #if !debug inline #end function asInt():Int return this == null ? 0 : (cast this:Int);
     @:to public #if !debug inline #end function asArray<A>():Array<A> return this == null ? [] : (cast this:Array<A>);
 
-    @:from public static macro function fromNILL<T>(v:ExprOf<NIL>):ExprOf<be.types.Default<T>> {
+    @:from public static macro function fromNIL<T>(v:ExprOf<NIL>):ExprOf<be.types.Default<T>> {
         counter = 0;
         var v = typeToValue( Context.getExpectedType() );
         var ctype = Context.getExpectedType().toComplex();
@@ -63,7 +63,7 @@ using tink.CoreApi;
                         if (cls.constructor != null) {
                             var tpath = stype.asTypePath();
 
-                            switch cls.constructor.get().type {
+                            switch cls.constructor.get().type.reduce() {
                                 case TFun(arg, _):
                                     if (cls.meta.has(_StructInit)) {
                                         var call = [];
@@ -84,8 +84,8 @@ using tink.CoreApi;
                                     toplevel.set(stype, {name:id, type:null, expr:result});
                                     result = macro cast $i{id};
 
-                                case _:
-
+                                case x:
+                                    result = typeToValue(x);
                             }
 
                         } else {
@@ -146,6 +146,8 @@ using tink.CoreApi;
                     result = macro $i{id};  
 
                 }              
+            case TLazy(l):
+                return typeToValue(l());
 
             case x: trace(x);
         } else {
