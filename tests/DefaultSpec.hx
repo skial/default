@@ -4,18 +4,6 @@ import utest.Assert;
 import be.types.NIL;
 import be.types.Default;
 
-@:enum private SConsts(String) from String to String {
-    var Hello = 'hello';
-}
-
-@:enum private IConsts(Int) from Int to Int {
-    var N1000 = 1000;
-}
-
-@:enum private FConsts(Float) from Float to Float {
-    var F1000 = 1000.123;
-}
-
 class A {
 
     public var a:String;
@@ -41,6 +29,10 @@ typedef C = {
 
 @:keep class DefaultSpec {
 
+    public static inline var HELLO:String = 'hello';
+    public static inline var N1000:Int = 1000;
+    public static inline var F1000:Float = 1000.123;
+
     public function new() {}
 
     public function equals<T>(e:T, r:T) {
@@ -53,16 +45,16 @@ typedef C = {
 
     public function testString() {
         var a:Default<String> = NIL;
-        var b:Default<String> = Hello;
+        var b:Default<String> = HELLO;
         equals('', a);
-        equals(Hello, b);
+        equals(HELLO, b);
     }
 
     public function testNullString() {
         var a:Default<String> = null;
-        var b:Default<String> = Hello;
+        var b:Default<String> = HELLO;
         equals('', a);
-        equals(Hello, b);
+        equals(HELLO, b);
     }
 
     public function testInt() {
