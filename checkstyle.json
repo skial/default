@@ -112,7 +112,7 @@
 		},
 		{
 			"props": {
-				"enforceEmptyPackage": false
+				"enforceEmptyPackage": true
 			},
 			"type": "EmptyPackage"
 		},
@@ -248,7 +248,7 @@
 		{
 			"props": {
 				"ignoreExtern": true,
-				"format": "^[a-z][a-zA-Z0-9]*$",
+				"format": "(^[a-z][a-zA-Z0-9]*|test[a-zA-Z0-9_]*)$",
 				"tokens": []
 			},
 			"type": "MethodName"
@@ -446,7 +446,7 @@
 		{
 			"props": {
 				"commaPolicy": "after",
-				"semicolonPolicy": "after",
+				"semicolonPolicy": "ignore",
 				"dotPolicy": "none"
 			},
 			"type": "SeparatorWhitespace"
@@ -506,7 +506,9 @@
 			"type": "Trace"
 		},
 		{
-			"props": {},
+			"props": {
+				"severity": "IGNORE"
+			},
 			"type": "TrailingWhitespace"
 		},
 		{
@@ -540,7 +542,7 @@
 		},
 		{
 			"props": {
-				"severity": "WARNING"
+				"severity": "IGNORE"
 			},
 			"type": "VariableInitialisation"
 		},

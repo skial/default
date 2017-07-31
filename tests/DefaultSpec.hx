@@ -4,6 +4,18 @@ import utest.Assert;
 import be.types.NIL;
 import be.types.Default;
 
+@:enum private SConsts(String) from String to String {
+    var Hello = 'hello';
+}
+
+@:enum private IConsts(Int) from Int to Int {
+    var N1000 = 1000;
+}
+
+@:enum private FConsts(Float) from Float to Float {
+    var F1000 = 1000.123;
+}
+
 class A {
 
     public var a:String;
@@ -29,9 +41,7 @@ typedef C = {
 
 @:keep class DefaultSpec {
 
-    public function new() {
-
-    }
+    public function new() {}
 
     public function equals<T>(e:T, r:T) {
         Assert.equals(e, r);
@@ -43,44 +53,44 @@ typedef C = {
 
     public function testString() {
         var a:Default<String> = NIL;
-        var b:Default<String> = 'hello';
+        var b:Default<String> = Hello;
         equals('', a);
-        equals('hello', b);
+        equals(Hello, b);
     }
 
     public function testNullString() {
         var a:Default<String> = null;
-        var b:Default<String> = 'hello';
+        var b:Default<String> = Hello;
         equals('', a);
-        equals('hello', b);
+        equals(Hello, b);
     }
 
     public function testInt() {
         var a:Default<Int> = NIL;
-        var b:Default<Int> = 1000;
+        var b:Default<Int> = N1000;
         equals(0, a);
-        equals(1000, b);
+        equals(N1000, b);
     }
 
     public function testNullInt() {
         var a:Default<Int> = null;
-        var b:Default<Int> = 1000;
+        var b:Default<Int> = N1000;
         equals(0, a);
-        equals(1000, b);
+        equals(N1000, b);
     }
 
     public function testFloat() {
         var a:Default<Float> = NIL;
-        var b:Default<Float> = 1000.123;
+        var b:Default<Float> = F1000;
         equals(.0, a);
-        equals(1000.123, b);
+        equals(F1000, b);
     }
 
     public function testNullFloat() {
         var a:Default<Float> = null;
-        var b:Default<Float> = 1000.123;
+        var b:Default<Float> = F1000;
         equals(.0, a);
-        equals(1000.123, b);
+        equals(F1000, b);
     }
 
     public function testObject() {
