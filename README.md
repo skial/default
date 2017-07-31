@@ -2,6 +2,10 @@
 
 > Cross-platform default values using abstract types.
 
+## Notes
+
+Passing a variable typed `Default<T>` to `Dynamic` will **not** check for nullness.
+
 ## Types
 
 ### `NIL`
