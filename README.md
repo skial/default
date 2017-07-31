@@ -22,7 +22,7 @@ Meant as a replacement for `null`.
     @:to public static function asString<T:String>(v:Default<T>):String;    // Defaults to `''`
     @:to public static function asStringyArray<T>(v:Default<Array<T>>):String; // Correctly stringifys an Array
     // Replaces `NIL` with a valid value at compile time.
-    @:from public static macro function fromNILL<T>(v:ExprOf<NIL>):ExprOf<be.types.Default<T>>;
+    @:from public static macro function fromNIL<T>(v:ExprOf<NIL>):ExprOf<be.types.Default<T>>;
 }
 ```
 
