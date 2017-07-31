@@ -11,10 +11,14 @@ using haxe.macro.Context;
 using Std;
 using tink.CoreApi;
 
-@:enum private abstract Consts(String) from String to String {
-    var _Default = 'Default';
-    var _Def = 'def';
-    var _StructInit = ':structInit';
+@:enum private abstract SConsts(String) from String to String {
+    var Default = 'Default';
+    var Def = 'def';
+    var StructInit = ':structInit';
+}
+
+@:enum private abstract IConsts(Int) from Int to Int {
+    var DefSub = 3;
 }
 
 // @see https://github.com/HaxeFoundation/haxe/issues/4756
@@ -41,7 +45,7 @@ using tink.CoreApi;
         return macro new be.types.Default<$ctype>($v);
     }
 
-    #if (macro||eval)
+    #if (macro || eval)
     private static var counter = 0;
     private static function typeToValue(type:Type, ?toplevel:Map<String, Var>):Expr {
         var result = null;
@@ -52,10 +56,10 @@ using tink.CoreApi;
         if (first) toplevel = new Map();
 
         if (!toplevel.exists(stype)) switch type {
-            case TAbstract(_.get()=>abs, p) if (abs.name == _Default):
+            case TAbstract(_.get() => abs, p) if (abs.name == Default):
                 result = typeToValue(p[0], toplevel);
             
-            case TInst(_.get()=>cls, _):
+            case TInst(_.get() => cls, _):
                 switch cls.name {
                     case 'Array': result = macro [];
                     case 'String': result = macro '';
@@ -65,7 +69,7 @@ using tink.CoreApi;
 
                             switch cls.constructor.get().type.reduce() {
                                 case TFun(arg, _):
-                                    if (cls.meta.has(_StructInit)) {
+                                    if (cls.meta.has(StructInit)) {
                                         var call = [];
                                         for (a in arg) call.push( {field:a.name, expr:typeToValue(a.t, toplevel)} );
                                         result = {expr:EObjectDecl(call), pos:Context.currentPos()};
@@ -80,7 +84,7 @@ using tink.CoreApi;
 
                                     }
                                     
-                                    var id = '$_Def${counter++}';
+                                    var id = '$Def${counter++}';
                                     toplevel.set(stype, {name:id, type:null, expr:result});
                                     result = macro cast $i{id};
 
@@ -95,7 +99,7 @@ using tink.CoreApi;
 
                 }
 
-            case TAbstract(_.get()=>abs, _):
+            case TAbstract(_.get() => abs, _):
                 switch abs.name {
                     case 'Int': result = macro 0;
                     case 'Float': result = macro .0;
@@ -103,7 +107,7 @@ using tink.CoreApi;
 
                 }
 
-            case TAnonymous(_.get()=>anon):
+            case TAnonymous(_.get() => anon):
                 var fields = [];
 
                 for (field in anon.fields) {
@@ -112,7 +116,7 @@ using tink.CoreApi;
                     var n = field.name;
                     var e = typeToValue(field.type, toplevel);
                     var v = toplevel.exists(id) ? toplevel.get(id) : null;
-                    var vn = '$_Def${counter-1}';
+                    var vn = '$Def${counter-1}';
                     
                     if (v != null) {
                         e = v.expr;
@@ -122,8 +126,11 @@ using tink.CoreApi;
 
                     switch e {
                         case {expr:EConst(CIdent(value))} if (value == 'null'):
-                            vn = '$_Def${vn.substring(3).parseInt() + 1}';
-                            toplevel.set(field.name + counter + stype, {name:'$_Def${counter+1}', type:ct, expr:macro @:tanonfield $i{'$_Def$counter'}.$n = $i{vn}});
+                            vn = '$Def${vn.substring(3).parseInt() + 1}';
+                            toplevel.set(
+                                field.name + counter + stype, 
+                                {name:'$Def${counter+1}', type:ct, expr:macro @:tanonfield $i{'$Def$counter'}.$n = $i{vn}}
+                            );
 
                         case x:
 
@@ -134,20 +141,20 @@ using tink.CoreApi;
                 }
                 result = macro @:tanonymous $e{{expr:EObjectDecl(fields), pos:Context.currentPos()}};
 
-            case TType(_.get()=>td, p):
+            case TType(_.get() => td, p):
                 if (td.name == 'Null') {
                     result = typeToValue( p[0], toplevel );
 
                 } else {
-                    var id = '$_Def${counter++}';
+                    var id = '$Def${counter++}';
                     toplevel.set(stype, {name:id, type:null, expr:macro null});
                     result = typeToValue( td.type, toplevel );
-                    toplevel.set('$stype${counter}', {name:id = '$_Def${counter++}', type:null, expr:macro @:ttype $result});
+                    toplevel.set('$stype${counter}', {name:id = '$Def${counter++}', type:null, expr:macro @:ttype $result});
                     result = macro $i{id};  
 
                 }              
             case TLazy(l):
-                return typeToValue(l());
+                return typeToValue( l() );
 
             case x: trace(x);
         } else {
@@ -167,7 +174,7 @@ using tink.CoreApi;
 
             }
 
-            vars.sort( (a,b)->a.name.substring(3).parseInt() > b.name.substring(3).parseInt() ? 1 : 0 );
+            vars.sort( (a, b)->a.name.substring(DefSub).parseInt() > b.name.substring(DefSub).parseInt() ? 1 : 0 );
             exprs = vars.map(v->{expr:EVars([v]), pos:Context.currentPos()});
 
             if (exprs.length > 0) {
