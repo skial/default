@@ -21,19 +21,57 @@ using tink.CoreApi;
     var DefSub = 3;
 }
 
+@:forward private abstract Safe<T>(T) {
+    public #if !debug inline #end function new(v) this = v;
+    @:to public #if !debug inline #end function get():T return this;
+    public static #if !debug inline #end function of<T>(v:T):Safe<T> return new Safe<T>(v);
+}
+
+@:forward private abstract Unsafe<T>(T) {
+    public #if !debug inline #end function new(v) this = v;
+    @:to public #if !debug inline #end function get():T return this;
+    public static #if !debug inline #end function of<T>(v:T, d:T):Unsafe<T> return new Unsafe<T>(v == null ? d : v);
+}
+
 // @see https://github.com/HaxeFoundation/haxe/issues/4756
-@:forward abstract Default<T>(T) from T {
+@:forward abstract Default<T>(T) {
 
     public #if !debug inline #end function new(v) this = v;
 
     public #if !debug inline #end function get():T return this;
 
-    @:to public static #if !debug inline #end function asObject(v:Default<{}>):{} return v == null ? {} : v.get();
-    @:to public static #if !debug inline #end function asStringyArray<T>(v:Default<Array<T>>):String return v == null ? '[]' : '' + v.get();
-    @:to public static #if !debug inline #end function asString<T:String>(v:Default<T>):String return v == null ? '' : v.get();
-    @:to public #if !debug inline #end function asFloat():Float return this == null ? .0 : (cast this:Float);
-    @:to public #if !debug inline #end function asInt():Int return this == null ? 0 : (cast this:Int);
-    @:to public #if !debug inline #end function asArray<A>():Array<A> return this == null ? [] : (cast this:Array<A>);
+    public static #if !debug inline #end function fromSafeValue<T>(v:T):Default<Safe<T>> return new Default<Safe<T>>(new Safe<T>(v));
+    public static #if !debug inline #end function of<T>(v:T, d:T):Default<T> return new Default<T>(v == null ? d : v);
+
+    @:from public static #if !debug inline #end function fromUnsafeString(v:String):Default<String> return of(v, '');
+    @:from public static #if !debug inline #end function fromUnsafeInt(v:Int):Default<Int> return of(v, 0);
+    @:from public static #if !debug inline #end function fromUnsafeFloat(v:Float):Default<Float> return of(v, .0);
+    @:from public static #if !debug inline #end function fromUnsafeBool(v:Bool):Default<Bool> return of(v, false);
+    @:from public static #if !debug inline #end function fromUnsafeArray<T>(v:Array<T>):Default<Array<T>> return of(v, []);
+    @:from public static #if !debug inline #end function fromUnsafeObject(v:{}):Default<{}> return of(v, {});
+
+    @:from public static macro function fromStruct(v:ExprOf<{}>):Expr {
+        #if debug
+        trace( v.toString(), v.typeof() );
+        #end
+        return macro be.types.Default.of( $v, $e{typeToValue(v.typeof())} );
+    }
+
+    @:to public static #if !debug inline #end function asDefaultString(v:Safe<String>):Default<String> return new Default(v.get());
+    @:to public static #if !debug inline #end function asDefaultInt(v:Safe<Int>):Default<Int> return new Default(v.get());
+    @:to public static #if !debug inline #end function asDefaultFloat(v:Safe<Float>):Default<Float> return new Default(v.get());
+    @:to public static #if !debug inline #end function asDefaultBool(v:Safe<Bool>):Default<Bool> return new Default(v.get());
+    @:to public static #if !debug inline #end function asDefaultArray<T>(v:Safe<Array<T>>):Default<Array<T>> return new Default(v.get());
+    @:to public static #if !debug inline #end function asDefaultStringlyArray<T>(v:Safe<Array<T>>):Default<String> return new Default('' + v);
+    @:to public static #if !debug inline #end function asDefaultObject(v:Safe<{}>):Default<{}> return new Default(v.get());
+
+    @:to public static #if !debug inline #end function asString(v:String):String return (v == null ? '' : v);
+    @:to public static #if !debug inline #end function asInt(v:Int):Int return (v == null ? 0 : v);
+    @:to public static #if !debug inline #end function asFloat(v:Float):Float return (v == null ? .0 : v);
+    @:to public static #if !debug inline #end function asBool(v:Bool):Bool return (v == null ? false : v);
+    @:to public static #if !debug inline #end function asArray<T>(v:Array<T>):Array<T> return (v == null ? [] : v);
+    @:to public static #if !debug inline #end function asStringlyArray<T>(v:Array<T>):String return '' + (v == null ? [] : v);
+    @:to public static #if !debug inline #end function asObject(v:{}):{} return (v == null ? {} : v);
 
     @:from public static macro function fromNIL<T>(v:ExprOf<NIL>):ExprOf<be.types.Default<T>> {
         counter = 0;
@@ -42,7 +80,7 @@ using tink.CoreApi;
         #if debug
         trace( v.toString() );
         #end
-        return macro new be.types.Default<$ctype>($v);
+        return macro be.types.Default.fromSafeValue($v);
     }
 
     #if (macro || eval)
@@ -99,10 +137,12 @@ using tink.CoreApi;
 
                 }
 
-            case TAbstract(_.get() => abs, _):
+            case TAbstract(_.get() => abs, p):
                 switch abs.name {
                     case 'Int': result = macro 0;
                     case 'Float': result = macro .0;
+                    case 'Bool': result = macro false;
+                    case 'Null': result = typeToValue(p[0]);
                     case x: trace(x);
 
                 }
@@ -187,28 +227,6 @@ using tink.CoreApi;
         
         return result;
     }
-
     #end
-
-    /*#if macro
-    @:from public static inline function fromComplex(v:ComplexType):Expr {
-        return switch v.toType() {
-            case Success(t): fromType(t);
-            case _: macro {};
-        }
-    }
-
-    @:from public static inline function fromType(v:Type):Expr {
-        var r = switch v.getID() {
-            case 'String': macro '';
-            case 'Array': macro [];
-            case _: 
-                trace( v );
-                macro {};
-        }
-        
-        return r;
-    }
-    #end*/
 
 }

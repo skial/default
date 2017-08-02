@@ -10,6 +10,7 @@ class A {
     public var b:Default<String> = NIL;
     public var c:Int;
     public var d:Int;
+    public var e:Default<Bool> = NIL;
 
     public function new(a:String, ?c:Int, ?d:Default<Int>) {
         this.a = a;
@@ -35,17 +36,18 @@ typedef C = {
 
     public function new() {}
 
-    public function equals<T>(e:T, r:T) {
+    public inline function equals<T>(e:T, r:T) {
         Assert.equals(e, r);
     }
 
-    public function same<T>(e:T, r:T) {
+    public inline function same<T>(e:T, r:T) {
         Assert.same(e, r);
     }
 
     public function testString() {
         var a:Default<String> = NIL;
         var b:Default<String> = HELLO;
+        
         equals('', a);
         equals(HELLO, b);
     }
@@ -126,7 +128,7 @@ typedef C = {
         equals( '', a.b );
         equals( 0, a.c );
         equals( 0, a.d );
-
+        equals( false, a.e );
     }
 
     public function testTypedefs() {
