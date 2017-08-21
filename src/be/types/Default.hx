@@ -117,110 +117,121 @@ using tink.CoreApi;
         var first = toplevel == null;
         if (first) toplevel = new Map();
 
-        if (!toplevel.exists(stype)) switch type {
-            case TAbstract(_.get() => abs, p) if (abs.name == Default):
-                result = typeToValue(p[0], toplevel);
+        if (!toplevel.exists(stype)) {
             
-            case TInst(_.get() => cls, _):
-                switch cls.name {
-                    case 'Array': result = macro [];
-                    case 'String': result = macro '';
-                    case x: 
-                        if (cls.constructor != null) {
-                            var tpath = stype.asTypePath();
-
-                            switch cls.constructor.get().type.reduce() {
-                                case TFun(arg, _):
-                                    if (cls.meta.has(StructInit)) {
-                                        var call = [];
-                                        for (a in arg) call.push( {field:a.name, expr:typeToValue(a.t, toplevel)} );
-                                        result = {expr:EObjectDecl(call), pos:Context.currentPos()};
-
-                                    } else {
-                                        var call = [];
-                                        for (a in arg) {
-                                            var e = typeToValue(a.t, toplevel);
-                                            call.push( e );
-                                        }
-                                        result = macro new $tpath($a{call});
-
-                                    }
-                                    
-                                    var id = '$Def${counter++}';
-                                    toplevel.set(stype, {name:id, type:null, expr:result});
-                                    result = macro cast $i{id};
-
-                                case x:
-                                    result = typeToValue(x);
-                            }
-
-                        } else {
-                            trace( x );
-
-                        }
-
-                }
-
-            case TAbstract(_.get() => abs, p):
-                switch abs.name {
-                    case 'Int': result = macro 0;
-                    case 'Float': result = macro .0;
-                    case 'Bool': result = macro false;
-                    case 'Null': result = typeToValue(p[0]);
-                    case x: trace(x);
-
-                }
-
-            case TAnonymous(_.get() => anon):
-                var fields = [];
-
-                for (field in anon.fields) {
-                    var ct = field.type.toComplex();
-                    var id = ct.toString();
-                    var n = field.name;
-                    var e = typeToValue(field.type, toplevel);
-                    var v = toplevel.exists(id) ? toplevel.get(id) : null;
-                    var vn = '$Def${counter-1}';
+            switch type {
+                case TAbstract(_.get() => abs, p) if (abs.name == Default):
+                    result = typeToValue(p[0], toplevel);
+                
+                case TEnum(_.get() => enm, p) if (enm.names.length > 0):
+                    var r = null;
                     
-                    if (v != null) {
-                        e = v.expr;
-                        vn = v.name;
+                    for (name in enm.names) switch enm.constructs.get(name).type {
+                        case TFun(args, ret) if (args.length > 0 && args.filter(a -> a.t.toComplex().toString() == stype).length == 0):
+                            r = '$stype.$name'.resolve();
+                            
+                            var cargs = [for (arg in args) {
+                                var ct = arg.t.toComplex();
+                                var st = ct.toString();
 
-                    }
+                                var def = typeToValue(arg.t, toplevel);
+                                avoidRecursion(ct, def, arg.name, toplevel);
 
-                    switch e {
-                        case {expr:EConst(CIdent(value))} if (value == 'null'):
-                            vn = '$Def${vn.substring(3).parseInt() + 1}';
-                            toplevel.set(
-                                field.name + counter + stype, 
-                                {name:'$Def${counter+1}', type:ct, expr:macro @:tanonfield $i{'$Def$counter'}.$n = $i{vn}}
-                            );
+                            }];
+
+                            r = r.call(cargs);
+                            break;
+
+                        case TEnum(_, _):
+                            r = '$stype.$name'.resolve();
+                            break;
 
                         case x:
+                            //trace(x);
+
+                    }
+                    if (r == null) Context.error('Could not construct ${stype}.', enm.pos);
+                    result = r;
+
+                case TInst(_.get() => cls, _):
+                    switch cls.name {
+                        case 'Array': result = macro [];
+                        case 'String': result = macro '';
+                        case x: 
+                            if (cls.constructor != null) {
+                                var tpath = stype.asTypePath();
+
+                                switch cls.constructor.get().type.reduce() {
+                                    case TFun(arg, _):
+                                        if (cls.meta.has(StructInit)) {
+                                            var call = [];
+                                            for (a in arg) call.push( {field:a.name, expr:typeToValue(a.t, toplevel)} );
+                                            result = {expr:EObjectDecl(call), pos:Context.currentPos()};
+
+                                        } else {
+                                            var call = [];
+                                            for (a in arg) {
+                                                var e = typeToValue(a.t, toplevel);
+                                                call.push( e );
+                                            }
+                                            result = macro new $tpath($a{call});
+
+                                        }
+                                        
+                                        var id = '$Def${counter++}';
+                                        toplevel.set(stype, {name:id, type:null, expr:result});
+                                        result = macro cast $i{id};
+
+                                    case x:
+                                        result = typeToValue(x);
+                                }
+
+                            } else {
+                                trace( x );
+
+                            }
+
+                    }
+
+                case TAbstract(_.get() => abs, p):
+                    switch abs.name {
+                        case 'Int': result = macro 0;
+                        case 'Float': result = macro .0;
+                        case 'Bool': result = macro false;
+                        case 'Null': result = typeToValue(p[0]);
+                        case x: trace(x);
+
+                    }
+
+                case TAnonymous(_.get() => anon):
+                    var fields = [];
+
+                    for (field in anon.fields) {
+                        
+                        var ct = field.type.toComplex();
+                        var def = typeToValue(field.type, toplevel);
+                        var e = avoidRecursion(ct, def, field.name, toplevel);
+                        
+                        fields.push( {field:field.name, expr: macro ($e:$ct)} );
 
                     }
                     
-                    fields.push( {field:field.name, expr: macro ($e:$ct)} );
+                    result = macro @:tanonymous $e{{expr:EObjectDecl(fields), pos:Context.currentPos()}};
 
-                }
-                result = macro @:tanonymous $e{{expr:EObjectDecl(fields), pos:Context.currentPos()}};
+                case TType(_.get() => td, p):
+                    if (td.name == 'Null') {
+                        result = typeToValue( p[0], toplevel );
 
-            case TType(_.get() => td, p):
-                if (td.name == 'Null') {
-                    result = typeToValue( p[0], toplevel );
+                    } else {
+                        result = cache(td.type, stype, toplevel);
 
-                } else {
-                    var id = '$Def${counter++}';
-                    toplevel.set(stype, {name:id, type:null, expr:macro null});
-                    result = typeToValue( td.type, toplevel );
-                    toplevel.set('$stype${counter}', {name:id = '$Def${counter++}', type:null, expr:macro @:ttype $result});
-                    result = macro $i{id};  
+                    }
+                case TLazy(l):
+                    return typeToValue( l() );
 
-                }              
-            case TLazy(l):
-                return typeToValue( l() );
+                case x: trace(x);
+            }
 
-            case x: trace(x);
         } else {
             var v = toplevel.get(stype);
             result = macro $i{v.name};
@@ -249,6 +260,41 @@ using tink.CoreApi;
 
         }
         
+        return result;
+    }
+
+    private static function cache(type:Type, stype:String, toplevel:Map<String, Var>):Expr {
+        var id = '$Def${counter++}';
+        toplevel.set(stype, {name:id, type:null, expr:macro null});
+        var result = typeToValue( type, toplevel );
+        toplevel.set('$stype${counter}', {name:id = '$Def${counter++}', type:null, expr:macro @:DefaultCache $result});
+        return macro $i{id};
+    }
+
+    private static function avoidRecursion(ctype:ComplexType, defExpr:Expr, access:String, toplevel:Map<String, Var>):Expr {
+        var result = defExpr;
+        var name = ctype.toString();
+        var variable = toplevel.exists(name) ? toplevel.get(name) : null;
+        var variableName = '$Def${counter-1}';
+
+        if (variable != null) {
+            result = variable.expr;
+            variableName = variable.name;
+
+        }
+
+        switch result {
+            case {expr:EConst(CIdent(value))} if (value == 'null'):
+                variableName = '$Def${variableName.substring(DefSub).parseInt() + 1}';
+                toplevel.set(
+                    name + counter + Date.now().toString(), 
+                    {name:'$Def${counter+1}', type:ctype, expr:macro @:tanonfield $i{'$Def$counter'}.$access = $i{variableName}}
+                );
+
+            case x:
+
+        }
+
         return result;
     }
     #end
