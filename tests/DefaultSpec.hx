@@ -4,6 +4,14 @@ import utest.Assert;
 import be.types.NIL;
 import be.types.Default;
 
+#if thx_core
+import thx.Nil;
+#end
+
+#if tink_core
+using tink.CoreApi;
+#end
+
 class A {
 
     public var a:String;
@@ -144,5 +152,25 @@ typedef C = {
         equals( .0, c.e.c );
         equals( '' + [], '' + c.e.d );
     }
+
+    #if thx_core
+    public function testString_thxcore() {
+        var a:Default<String> = nil;
+        var b:Default<String> = HELLO;
+        
+        equals('', a);
+        equals(HELLO, b);
+    }
+    #end
+
+    #if tink_core
+    public function testString_tinkcore() {
+        var a:Default<String> = Noise;
+        var b:Default<String> = HELLO;
+        
+        equals('', a);
+        equals(HELLO, b);
+    }
+    #end
 
 }

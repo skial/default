@@ -9,6 +9,7 @@
     "version": "0.0.1-alpha",
     "url": "https://gitlab.com/b.e",
     "dependencies": {
+        "thx.core": "",
         "tink_core": "",
         "tink_macro": "",
         "utest": ""

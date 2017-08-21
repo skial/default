@@ -73,7 +73,7 @@ using tink.CoreApi;
     @:to public static #if !debug inline #end function asStringlyArray<T>(v:Array<T>):String return '' + (v == null ? [] : v);
     @:to public static #if !debug inline #end function asObject(v:{}):{} return (v == null ? {} : v);
 
-    @:from public static macro function fromNIL<T>(v:ExprOf<NIL>):ExprOf<be.types.Default<T>> {
+    @:from public static macro function fromNIL<T>(v:ExprOf<be.types.NIL>):ExprOf<be.types.Default<T>> {
         counter = 0;
         var v = typeToValue( Context.getExpectedType() );
         var ctype = Context.getExpectedType().toComplex();
@@ -82,6 +82,30 @@ using tink.CoreApi;
         #end
         return macro be.types.Default.fromSafeValue($v);
     }
+
+    #if thx_core 
+    @:from public static macro function fromThxNil<T>(v:ExprOf<thx.Nil>):ExprOf<be.types.Default<T>> {
+        counter = 0;
+        var v = typeToValue( Context.getExpectedType() );
+        var ctype = Context.getExpectedType().toComplex();
+        #if debug
+        trace( v.toString() );
+        #end
+        return macro be.types.Default.fromSafeValue($v);
+    }
+    #end
+
+    #if tink_core 
+    @:from public static macro function fromTinkNil<T>(v:ExprOf<tink.core.Noise>):ExprOf<be.types.Default<T>> {
+        counter = 0;
+        var v = typeToValue( Context.getExpectedType() );
+        var ctype = Context.getExpectedType().toComplex();
+        #if debug
+        trace( v.toString() );
+        #end
+        return macro be.types.Default.fromSafeValue($v);
+    }
+    #end
 
     #if (macro || eval)
     private static var counter = 0;
