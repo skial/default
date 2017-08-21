@@ -36,6 +36,19 @@ typedef C = {
     var e:C;
 }
 
+enum D {
+    Empty;
+}
+
+enum E {
+    Arg3(a:Int, b:String, c:Float);
+}
+
+enum F {
+    Loop(v:F);
+    Ref(r:E);
+}
+
 @:keep class DefaultSpec {
 
     public static inline var HELLO:String = 'hello';
@@ -151,6 +164,24 @@ typedef C = {
         equals( 0, c.e.b );
         equals( .0, c.e.c );
         equals( '' + [], '' + c.e.d );
+    }
+
+    public function testEnum_simple() {
+        var d:Default<D> = NIL;
+        
+        Assert.isTrue( d.get().match(Empty) );
+    }
+
+    public function testEnum_args() {
+        var e:Default<E> = NIL;
+        
+        Assert.isTrue( e.get().match(Arg3(0, '', .0)) );
+    }
+
+    public function testEnum_loop() {
+        var f:Default<F> = NIL;
+        
+        Assert.isTrue( f.get().match( Ref(Arg3(0, '', .0)) ) );
     }
 
     #if thx_core
