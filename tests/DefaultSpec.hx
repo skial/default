@@ -1,12 +1,12 @@
 package ;
 
-import utest.Assert;
-import be.types.NIL;
-import be.types.Default;
-
 #if thx_core
 import thx.Nil;
 #end
+
+import utest.Assert;
+import be.types.NIL;
+import be.types.Default;
 
 #if tink_core
 using tink.CoreApi;
@@ -53,7 +53,7 @@ typedef C = {
     }
 
     public function testString() {
-        var a:Default<String> = NIL;
+        var a:Default<String> = nil;
         var b:Default<String> = HELLO;
         
         equals('', a);
