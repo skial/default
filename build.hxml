@@ -6,9 +6,11 @@
 -cp src
 -cp tests
 
-#-debug
+-debug
 -dce full
+-D default_debug
 -D analyzer-optimize
+-D eval-stack
 
 -main Main
 

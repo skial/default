@@ -77,7 +77,7 @@ using tink.CoreApi;
         counter = 0;
         var v = typeToValue( Context.getExpectedType() );
         var ctype = Context.getExpectedType().toComplex();
-        #if debug
+        #if default_debug
         trace( v.toString() );
         #end
         return macro be.types.Default.fromSafeValue($v);
@@ -88,7 +88,7 @@ using tink.CoreApi;
         counter = 0;
         var v = typeToValue( Context.getExpectedType() );
         var ctype = Context.getExpectedType().toComplex();
-        #if debug
+        #if default_debug
         trace( v.toString() );
         #end
         return macro be.types.Default.fromSafeValue($v);
@@ -100,7 +100,7 @@ using tink.CoreApi;
         counter = 0;
         var v = typeToValue( Context.getExpectedType() );
         var ctype = Context.getExpectedType().toComplex();
-        #if debug
+        #if default_debug
         trace( v.toString() );
         #end
         return macro be.types.Default.fromSafeValue($v);
@@ -199,7 +199,9 @@ using tink.CoreApi;
                         case 'Float': result = macro .0;
                         case 'Bool': result = macro false;
                         case 'Null': result = typeToValue(p[0]);
-                        case x: trace(x);
+                        case x: 
+                            #if default_debug trace(x); #end
+                            result = typeToValue( type.followWithAbstracts(true), toplevel );
 
                     }
 
