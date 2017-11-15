@@ -275,8 +275,12 @@ using tink.CoreApi;
 
             }
             
-            vars.sort( (a, b)->a.name.substring(DefSub).parseInt() > b.name.substring(DefSub).parseInt() ? 1 : 0 );
-            exprs = vars.map(v->{expr:EVars([v]), pos:Context.currentPos()});
+            vars.sort( function (a, b) {
+                var _a = a.name.substring(DefSub).parseInt();
+                var _b = b.name.substring(DefSub).parseInt();
+                return ( _a == _b ) ? 0 : (((_a) > (_b)) ? 1 : -1);
+            } );
+            exprs = vars.map(v -> {expr:EVars([v]), pos:Context.currentPos()});
             
             if (exprs.length > 0) {
                 exprs.push(macro $result);
@@ -291,9 +295,11 @@ using tink.CoreApi;
 
     private static function cache(type:Type, stype:String, ctype:ComplexType, toplevel:Map<String, Var>):Expr {
         var id = '$Def${counter++}';
+        
         toplevel.set(stype, {name:id, type:ctype, expr:macro null});
         var result = typeToValue( type, toplevel );
-        toplevel.set('$stype${counter}', {name:id = '$Def${counter++}', type:ctype, expr:macro @:DefaultCache $result});
+        //toplevel.set('$stype${counter}', {name:id/* = '$Def${counter}'*/, type:ctype, expr:macro @:DefaultCache $result});
+        toplevel.set('$stype', {name:id/* = '$Def${counter}'*/, type:ctype, expr:macro @:DefaultCache $result});
         return macro $i{id};
     }
 
@@ -301,7 +307,7 @@ using tink.CoreApi;
         var result = defExpr;
         var name = ctype.toString();
         var variable = toplevel.exists(name) ? toplevel.get(name) : null;
-        var variableName = '$Def${counter-1}';
+        var variableName = '$Def${counter}';
         
         if (variable != null) {
             result = variable.expr;
@@ -311,9 +317,9 @@ using tink.CoreApi;
 
         switch result {
             case {expr:EConst(CIdent(value))} if (value == 'null'):
-                variableName = '$Def${variableName.substring(DefSub).parseInt() + 1}';
-                var _var = {name:'$Def${counter+1}', type:ctype, expr:macro @:AnonField $i{'$Def$counter'}.$access = $i{variableName}};
-                toplevel.set( name + counter + Date.now().toString(), _var );
+                variable.expr = macro @:pos(defExpr.pos) @:AnonField $i{variable.name}.$access = $i{'$Def${counter-1}'};
+                var name = ~/[\.\+]+/g.replace(name + counter + Date.now().getTime(), '');
+                toplevel.set( name, variable );
 
             case x:
 

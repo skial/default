@@ -53,6 +53,16 @@ typedef G = {
     var a:Default<Path>;
 }
 
+typedef H = String;
+
+typedef I = {
+    var a:H;
+}
+
+typedef J = {
+    var a:I;
+}
+
 abstract Path(String) from String to String {}
 
 @:keep class DefaultSpec {
@@ -194,6 +204,24 @@ abstract Path(String) from String to String {}
         var path:Default<Path> = NIL;
 
         equals( '', path );
+    }
+
+    public function testTypedefAlias_simple() {
+        var h:Default<H> = NIL;
+
+        equals( '', h );
+    }
+
+    public function testTypedefAlias_descendant() {
+        var i:Default<I> = NIL;
+
+        equals( '', i.a );
+    }
+
+    public function testTypedefAlias_descendants() {
+        var j:Default<J> = NIL;
+
+        equals( '', j.a.a );
     }
 
     #if thx_core
