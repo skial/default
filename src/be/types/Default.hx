@@ -3,6 +3,7 @@ package be.types;
 #if macro
 import haxe.macro.Type;
 import haxe.macro.Expr;
+import haxe.macro.Expr.QuoteStatus;
 
 using tink.MacroApi;
 using haxe.macro.Context;
@@ -51,7 +52,7 @@ using tink.CoreApi;
     @:from public static #if !debug inline #end function fromUnsafeObject(v:{}):Default<{}> return of(v, {});
 
     @:from public static macro function fromStruct(v:ExprOf<{}>):Expr {
-        #if debug
+        #if default_debug
         trace( v.toString(), v.typeof() );
         #end
         return macro be.types.Default.of( $v, $e{typeToValue(v.typeof())} );
@@ -77,7 +78,7 @@ using tink.CoreApi;
         counter = 0;
         var v = typeToValue( Context.getExpectedType() );
         var ctype = Context.getExpectedType().toComplex();
-        #if debug
+        #if default_debug
         trace( v.toString() );
         #end
         return macro be.types.Default.fromSafeValue($v);
@@ -88,7 +89,7 @@ using tink.CoreApi;
         counter = 0;
         var v = typeToValue( Context.getExpectedType() );
         var ctype = Context.getExpectedType().toComplex();
-        #if debug
+        #if default_debug
         trace( v.toString() );
         #end
         return macro be.types.Default.fromSafeValue($v);
@@ -100,7 +101,7 @@ using tink.CoreApi;
         counter = 0;
         var v = typeToValue( Context.getExpectedType() );
         var ctype = Context.getExpectedType().toComplex();
-        #if debug
+        #if default_debug
         trace( v.toString() );
         #end
         return macro be.types.Default.fromSafeValue($v);
@@ -116,7 +117,7 @@ using tink.CoreApi;
 
         var first = toplevel == null;
         if (first) toplevel = new Map();
-
+        
         if (!toplevel.exists(stype)) {
             
             switch type {
@@ -147,7 +148,7 @@ using tink.CoreApi;
                             break;
 
                         case x:
-                            //trace(x);
+                            #if default_debug trace(x); #end
 
                     }
                     if (r == null) Context.error('Could not construct ${stype}.', enm.pos);
@@ -187,47 +188,72 @@ using tink.CoreApi;
                                 }
 
                             } else {
-                                trace( x );
+                                #if default_debug trace(x); #end
 
                             }
 
                     }
 
-                case TAbstract(_.get() => abs, p):
+                case TAbstract(_.get() => abs, p) if (abs.meta.has(':coreType')):
                     switch abs.name {
                         case 'Int': result = macro 0;
                         case 'Float': result = macro .0;
                         case 'Bool': result = macro false;
                         case 'Null': result = typeToValue(p[0]);
-                        case x: trace(x);
+                        case x: 
+                            #if default_debug trace(x); #end
 
                     }
+
+                case TAbstract(_.get() => abs, p) if (!abs.meta.has(':coreType')):
+                    result = typeToValue( type.followWithAbstracts(true), toplevel );
 
                 case TAnonymous(_.get() => anon):
-                    var fields = [];
+                    /**
+                    For 
+                    ```
+                    typedef A = {
+                        var str:String;
+                        var a:A;
+                    }
+                    ```
+                    
+                    return 
+                    ```
+                    {
+                        var def0 = null;
+                        var def1 = { str:'', a:null };
+                        var def2 = def1.a = def1;
+                        def1;
+                    }
+                    ```
+                    **/
 
+                    var fields = [];
+                    
                     for (field in anon.fields) {
                         
-                        var ct = field.type.toComplex();
+                        var ctype = field.type.toComplex();
                         var def = typeToValue(field.type, toplevel);
-                        var e = avoidRecursion(ct, def, field.name, toplevel);
-                        
-                        fields.push( {field:field.name, expr: macro ($e:$ct)} );
+                        var expr = avoidRecursion(ctype, def, field.name, toplevel);
+                        var field = {field:field.name, expr: macro ($expr:$ctype), quotes:NoQuotes};
+                        fields.push( field );
 
                     }
-                    
-                    result = macro @:tanonymous $e{{expr:EObjectDecl(fields), pos:Context.currentPos()}};
+
+                    result = macro @:Anonymous $e{{expr:EObjectDecl(fields), pos:Context.currentPos()}};
 
                 case TType(_.get() => td, p):
                     if (td.name == 'Null') {
                         result = typeToValue( p[0], toplevel );
 
                     } else {
-                        result = cache(td.type, stype, toplevel);
+                        result = cache(td.type, stype, ctype, toplevel);
 
                     }
+                    
                 case TLazy(l):
-                    return typeToValue( l() );
+                    result = typeToValue( l() );
 
                 case x: trace(x);
             }
@@ -235,7 +261,7 @@ using tink.CoreApi;
         } else {
             var v = toplevel.get(stype);
             result = macro $i{v.name};
-
+            
         }
 
         if (first) {
@@ -248,10 +274,10 @@ using tink.CoreApi;
                 vars.push(v);
 
             }
-
+            
             vars.sort( (a, b)->a.name.substring(DefSub).parseInt() > b.name.substring(DefSub).parseInt() ? 1 : 0 );
             exprs = vars.map(v->{expr:EVars([v]), pos:Context.currentPos()});
-
+            
             if (exprs.length > 0) {
                 exprs.push(macro $result);
                 result = macro @:mergeBlock $b{exprs};
@@ -263,11 +289,11 @@ using tink.CoreApi;
         return result;
     }
 
-    private static function cache(type:Type, stype:String, toplevel:Map<String, Var>):Expr {
+    private static function cache(type:Type, stype:String, ctype:ComplexType, toplevel:Map<String, Var>):Expr {
         var id = '$Def${counter++}';
-        toplevel.set(stype, {name:id, type:null, expr:macro null});
+        toplevel.set(stype, {name:id, type:ctype, expr:macro null});
         var result = typeToValue( type, toplevel );
-        toplevel.set('$stype${counter}', {name:id = '$Def${counter++}', type:null, expr:macro @:DefaultCache $result});
+        toplevel.set('$stype${counter}', {name:id = '$Def${counter++}', type:ctype, expr:macro @:DefaultCache $result});
         return macro $i{id};
     }
 
@@ -276,7 +302,7 @@ using tink.CoreApi;
         var name = ctype.toString();
         var variable = toplevel.exists(name) ? toplevel.get(name) : null;
         var variableName = '$Def${counter-1}';
-
+        
         if (variable != null) {
             result = variable.expr;
             variableName = variable.name;
@@ -286,15 +312,13 @@ using tink.CoreApi;
         switch result {
             case {expr:EConst(CIdent(value))} if (value == 'null'):
                 variableName = '$Def${variableName.substring(DefSub).parseInt() + 1}';
-                toplevel.set(
-                    name + counter + Date.now().toString(), 
-                    {name:'$Def${counter+1}', type:ctype, expr:macro @:tanonfield $i{'$Def$counter'}.$access = $i{variableName}}
-                );
+                var _var = {name:'$Def${counter+1}', type:ctype, expr:macro @:AnonField $i{'$Def$counter'}.$access = $i{variableName}};
+                toplevel.set( name + counter + Date.now().toString(), _var );
 
             case x:
 
         }
-
+        
         return result;
     }
     #end

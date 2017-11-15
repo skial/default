@@ -38,4 +38,8 @@ For Classes, Typesdefs Anonymous structures and Enums _(with one exception)_, `D
 
 When constructing Enums, Default will attempt to use the first constructor listed. If that constructor has args and one of them is typed the same as the Enum, Default will move onto the next constructor. If none are suitable, an error will be thrown.
 
+#### Conditional Defines
+
+Add `-D default_debug` for further, useful, macro related errors to help debugging.
+
 

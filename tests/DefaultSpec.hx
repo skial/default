@@ -49,6 +49,12 @@ enum F {
     Ref(r:E);
 }
 
+typedef G = {
+    var a:Default<Path>;
+}
+
+abstract Path(String) from String to String {}
+
 @:keep class DefaultSpec {
 
     public static inline var HELLO:String = 'hello';
@@ -182,6 +188,12 @@ enum F {
         var f:Default<F> = NIL;
         
         Assert.isTrue( f.get().match( Ref(Arg3(0, '', .0)) ) );
+    }
+
+    public function testAbstract_simple() {
+        var path:Default<Path> = NIL;
+
+        equals( '', path );
     }
 
     #if thx_core
