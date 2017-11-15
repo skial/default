@@ -295,11 +295,9 @@ using tink.CoreApi;
 
     private static function cache(type:Type, stype:String, ctype:ComplexType, toplevel:Map<String, Var>):Expr {
         var id = '$Def${counter++}';
-        
         toplevel.set(stype, {name:id, type:ctype, expr:macro null});
         var result = typeToValue( type, toplevel );
-        //toplevel.set('$stype${counter}', {name:id/* = '$Def${counter}'*/, type:ctype, expr:macro @:DefaultCache $result});
-        toplevel.set('$stype', {name:id/* = '$Def${counter}'*/, type:ctype, expr:macro @:DefaultCache $result});
+        toplevel.set('$stype', {name:id, type:ctype, expr:macro @:DefaultCache $result});
         return macro $i{id};
     }
 
