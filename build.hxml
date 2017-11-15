@@ -8,7 +8,7 @@
 
 -debug
 -dce full
--D default_debug
+#-D default_debug
 -D analyzer-optimize
 -D eval-stack
 
