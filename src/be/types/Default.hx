@@ -255,6 +255,13 @@ using tink.CoreApi;
                 case TLazy(l):
                     result = typeToValue( l() );
 
+                case TDynamic(n) if (n == null):
+                    Context.fatalError( 'Could not detect type. Compiler has passed along $type.', Context.currentPos() );
+                    result = macro null;
+
+                case TDynamic(n) if (n != null):
+                    result = typeToValue( n );
+
                 case x: trace(x);
             }
 

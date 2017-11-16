@@ -224,6 +224,19 @@ abstract Path(String) from String to String {}
         equals( '', j.a.a );
     }
 
+    public function testTypedefAlias_module() {
+        var f:Default<TFoo> = NIL;
+
+        equals( '', f );
+    }
+
+    public function testTypedefAlias_module_descendants() {
+        var f:Default<TFoo.TBar> = NIL;
+
+        equals( '', f.twins.a );
+        equals( '', f.twins.b );
+    }
+
     #if thx_core
     public function testString_thxcore() {
         var a:Default<String> = nil;
