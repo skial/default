@@ -9,6 +9,7 @@ import haxe.macro.Context;
 using tink.CoreApi;
 #if (macro || eval)
 using tink.MacroApi;
+using haxe.macro.Context;
 #end
 
 @:keep class DefaultMacroSpec {
@@ -25,8 +26,8 @@ using tink.MacroApi;
 
     public static macro function genTDynamic():Expr {
         var type =  Context.getType('TFoo.TBar');
-        var result = @:privateAccess Default.typeToValue( TDynamic(type) );
-        //trace( result.toString() );
+        var result = @:privateAccess Default.typeToValue( type );
+        #if default_debug trace( result.toString() ); #end
         return result;
     }
 

@@ -257,10 +257,12 @@ using tink.CoreApi;
 
                 case TDynamic(n) if (n == null):
                     Context.fatalError( 'Could not detect type. Compiler has passed along $type.', Context.currentPos() );
-                    result = macro null;
+                    //result = macro null;
+                    result = macro {};
 
                 case TDynamic(n) if (n != null):
-                    result = typeToValue( n );
+                    //result = typeToValue( n );
+                    result = macro {};
 
                 case x: trace(x);
             }
