@@ -257,4 +257,11 @@ abstract Path(String) from String to String {}
     }
     #end
 
+    public function testDynamicAccess() {
+        var a:Default<haxe.DynamicAccess<String>> = NIL;
+
+        Assert.isFalse( a.exists('') );
+        Assert.equals( 0, a.keys().length, '' + a.keys() );
+    }
+
 }

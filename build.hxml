@@ -21,7 +21,7 @@
 --next
 
 -lib hxnodejs
--lib closure
+#-lib closure
 #-D closure_advanced
 -D closure_prettyprint
 -D closure_language_in=ECMASCRIPT5
