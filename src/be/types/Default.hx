@@ -166,7 +166,7 @@ using tink.CoreApi;
                                     case TFun(arg, _):
                                         if (cls.meta.has(StructInit)) {
                                             var call = [];
-                                            for (a in arg) call.push( {field:a.name, expr:typeToValue(a.t, toplevel)} );
+                                            for (a in arg) call.push( {field:a.name, expr:typeToValue(a.t, toplevel), quotes:NoQuotes} );
                                             result = {expr:EObjectDecl(call), pos:Context.currentPos()};
 
                                         } else {
