@@ -12,6 +12,7 @@
         "thx.core": "",
         "tink_core": "",
         "tink_macro": "",
+        "tink_json": "",
         "utest": ""
     }
   }
