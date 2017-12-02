@@ -264,4 +264,17 @@ abstract Path(String) from String to String {}
         Assert.equals( 0, a.keys().length, '' + a.keys() );
     }
 
+    public function testTinkJsonRepresentation() {
+        var s:Default<{foo:String, bar:Int}> = NIL;
+        s.bar = 100;
+        var j = tink.Json.stringify(s);
+
+        Assert.equals( '{"bar":100,"foo":""}', j );
+
+        var s:{foo:Default<String>, bar:Default<Int>} = tink.Json.parse( j );
+
+        Assert.equals( '', s.foo );
+        Assert.equals( 100, s.bar );
+    }
+
 }

@@ -1,5 +1,7 @@
 package be.types;
 
+import tink.json.Representation;
+
 #if macro
 import haxe.macro.Type;
 import haxe.macro.Expr;
@@ -73,6 +75,9 @@ using tink.CoreApi;
     @:to public static #if !debug inline #end function asArray<T>(v:Array<T>):Array<T> return (v == null ? [] : v);
     @:to public static #if !debug inline #end function asStringlyArray<T>(v:Array<T>):String return '' + (v == null ? [] : v);
     @:to public static #if !debug inline #end function asObject(v:{}):{} return (v == null ? {} : v);
+
+    @:to public function toTinkRep():Representation<T> return new Representation(this);
+    @:from public static function fromTinkRep<T>(v:Representation<T>):Default<T> return new Default(v.get());
 
     @:from public static macro function fromNIL<T>(v:ExprOf<be.types.NIL>):ExprOf<be.types.Default<T>> {
         counter = 0;

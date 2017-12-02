@@ -2,13 +2,15 @@
 -lib thx.core
 -lib tink_core
 -lib tink_macro
+-lib tink_json
 
 -cp src
 -cp tests
 
 -debug
 -dce full
-#-D default_debug
+
+-D default_debug
 -D analyzer-optimize
 -D eval-stack
 
