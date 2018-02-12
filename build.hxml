@@ -13,6 +13,7 @@
 -D default_debug
 -D analyzer-optimize
 -D eval-stack
+-D nightly
 
 -main Main
 

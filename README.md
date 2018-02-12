@@ -41,5 +41,6 @@ When constructing Enums, Default will attempt to use the first constructor liste
 #### Conditional Defines
 
 Add `-D default_debug` for further, useful, macro related errors to help debugging.
+Add `-D nightly` if working with a nightly build of the Haxe compiler.
 
 

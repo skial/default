@@ -171,7 +171,7 @@ using tink.CoreApi;
                                     case TFun(arg, _):
                                         if (cls.meta.has(StructInit)) {
                                             var call = [];
-                                            for (a in arg) call.push( {field:a.name, expr:typeToValue(a.t, toplevel), quotes:NoQuotes} );
+                                            for (a in arg) call.push( {field:a.name, expr:typeToValue(a.t, toplevel), quotes: quotes()} );
                                             result = {expr:EObjectDecl(call), pos:Context.currentPos()};
 
                                         } else {
@@ -241,7 +241,7 @@ using tink.CoreApi;
                         var ctype = field.type.toComplex();
                         var def = typeToValue(field.type, toplevel);
                         var expr = avoidRecursion(ctype, def, field.name, toplevel);
-                        var field = {field:field.name, expr: macro ($expr:$ctype), quotes:NoQuotes};
+                        var field = {field:field.name, expr: macro ($expr:$ctype), quotes: quotes()};
                         fields.push( field );
 
                     }
@@ -336,6 +336,14 @@ using tink.CoreApi;
         }
         
         return result;
+    }
+
+    private static inline function quotes() {
+        #if ((haxe_ver <= "4.000") && !nightly)
+        return NoQuotes;
+        #elseif ((haxe_ver <= "4.000") && nightly)
+        return Unquoted;
+        #end
     }
     #end
 
