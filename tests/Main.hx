@@ -1,15 +1,17 @@
 package ;
 
-import utest.Runner;
-import utest.ui.Report;
+import tink.unit.TestBatch;
+import tink.testrunner.Runner;
 
 class Main {
 
     public static function main() {
-        var runner = new Runner();
-        runner.addCase( new DefaultSpec() );
-        Report.create( runner );
-        runner.run();
+        Runner.run(
+            TestBatch.make([
+               new DefaultSpec(),
+            ])
+
+        ).handle(Runner.exit);
     }
 
 }

@@ -4,7 +4,8 @@ package ;
 import thx.Nil;
 #end
 
-import utest.Assert;
+import tink.unit.AssertionBuffer;
+
 import be.types.NIL;
 import be.types.Default;
 
@@ -73,208 +74,345 @@ abstract Path(String) from String to String {}
 
     public function new() {}
 
-    public inline function equals<T>(e:T, r:T) {
-        Assert.equals(e, r);
-    }
-
-    public inline function same<T>(e:T, r:T) {
-        Assert.same(e, r);
-    }
-
     public function testString() {
+        var asserts = new AssertionBuffer();
+
         var a:Default<String> = nil;
         var b:Default<String> = HELLO;
         
-        equals('', a);
-        equals(HELLO, b);
+        asserts.assert('' == a);
+        asserts.assert(HELLO == b);
+
+        asserts.done();
+        return asserts;
     }
 
+    #if !static
     public function testNullString() {
+        var asserts = new AssertionBuffer();
+
         var a:Default<String> = null;
         var b:Default<String> = HELLO;
-        equals('', a);
-        equals(HELLO, b);
+        asserts.assert(a == '');
+        asserts.assert(HELLO == b);
+
+        asserts.done();
+        return asserts;
     }
+    #end
 
     public function testInt() {
+        var asserts = new AssertionBuffer();
+
         var a:Default<Int> = NIL;
         var b:Default<Int> = N1000;
-        equals(0, a);
-        equals(N1000, b);
+        asserts.assert(a == 0);
+        asserts.assert(b == N1000);
+
+        asserts.done();
+        return asserts;
     }
 
+    #if !static
     public function testNullInt() {
+        var asserts = new AssertionBuffer();
+
         var a:Default<Int> = null;
         var b:Default<Int> = N1000;
-        equals(0, a);
-        equals(N1000, b);
+        asserts.assert(a == 0);
+        asserts.assert(N1000 == b);
+
+        asserts.done();
+        return asserts;
     }
+    #end
 
     public function testFloat() {
+        var asserts = new AssertionBuffer();
+
         var a:Default<Float> = NIL;
         var b:Default<Float> = F1000;
-        equals(.0, a);
-        equals(F1000, b);
+        asserts.assert(a == .0);
+        asserts.assert(b == F1000);
+
+        asserts.done();
+        return asserts;
     }
 
+    #if !static
     public function testNullFloat() {
+        var asserts = new AssertionBuffer();
+
         var a:Default<Float> = null;
         var b:Default<Float> = F1000;
-        equals(.0, a);
-        equals(F1000, b);
+        
+        asserts.assert(a == .0);
+        asserts.assert(F1000 == b);
+
+        asserts.done();
+        return asserts;
     }
+    #end
 
     public function testObject() {
+        var asserts = new AssertionBuffer();
+
         var a:Default<{}> = NIL;
         var b:Default<{a:String}> = {a:'1'};
-        same({}, a);
-        same({a:'1'}, cast b);
+        
+        asserts.assert( Reflect.fields( a.get() ).length == 0 );
+        asserts.assert({a:'1'}.a == b.a);
+
+        asserts.done();
+        return asserts;
     }
 
+    #if !static
     public function testNullObject() {
+        var asserts = new AssertionBuffer();
+
         var a:Default<{}> = null;
         var b:Default<{a:String}> = {a:'1'};
-        same({}, a);
-        same({a:'1'}, cast b);
+
+        asserts.assert( Reflect.fields( a.get() ).length == 0 );
+        asserts.assert({a:'1'}.a == b.a);
+
+        asserts.done();
+        return asserts;
     }
+    #end
 
     public function testTypedObject() {
+        var asserts = new AssertionBuffer();
+
         var b:Default<{a:String}> = NIL;
-        same({a:''}, cast b);
+
+        asserts.assert( {a:''}.a == b.a );
+
+        asserts.done();
+        return asserts;
     }
 
     // Currently doesnt build a matching struct at runtime.
     /*public function testNullTypedObject() {
+        var asserts = new AssertionBuffer();
+
         var b:Default<{a:String}> = null;
         same({a:''}, cast b);
+
+        asserts.done();
+        return asserts;
     }*/
 
     public function testArray() {
+        var asserts = new AssertionBuffer();
+
         var a:Default<Array<String>> = NIL;
         var b:Default<Array<String>> = ['a', 'b'];
-        Assert.equals( 0, a.length );
-        Assert.equals( 2, b.length );
-        Assert.equals('' + [], '' + a);
-        Assert.equals('' + ['a', 'b'], '' + b);
+
+        asserts.assert( 0 == a.length );
+        asserts.assert( 2 == b.length );
+        asserts.assert('' + [] == '' + a);
+        asserts.assert('' + ['a', 'b'] == '' + b);
+
+        asserts.done();
+        return asserts;
     }
 
     public function testClasses() {
+        var asserts = new AssertionBuffer();
+
         var a:Default<A> = NIL;
 
-        equals( '', a.a );
-        equals( '', a.b );
-        equals( 0, a.c );
-        equals( 0, a.d );
-        equals( false, a.e );
+        asserts.assert( '' == a.a );
+        asserts.assert( '' == a.b );
+        asserts.assert( 0 == a.c );
+        asserts.assert( 0 == a.d );
+        asserts.assert( false == a.e );
+
+        asserts.done();
+        return asserts;
     }
 
     public function testTypedefs() {
+        var asserts = new AssertionBuffer();
+
         var c:Default<C> = NIL;
 
-        equals( '', c.a );
-        equals( 0, c.b );
-        equals( .0, c.c );
-        equals( '' + [], '' + c.d );
+        asserts.assert( '' == c.a );
+        asserts.assert( 0 == c.b );
+        asserts.assert( .0 == c.c );
+        asserts.assert( '' + [] == '' + c.d );
 
-        equals( '', c.e.a );
-        equals( 0, c.e.b );
-        equals( .0, c.e.c );
-        equals( '' + [], '' + c.e.d );
+        asserts.assert( '' == c.e.a );
+        asserts.assert( 0 == c.e.b );
+        asserts.assert( .0 == c.e.c );
+        asserts.assert( '' + [] == '' + c.e.d );
+
+        asserts.done();
+        return asserts;
     }
 
     public function testEnum_simple() {
+        var asserts = new AssertionBuffer();
+
         var d:Default<D> = NIL;
         
-        Assert.isTrue( d.get().match(Empty) );
+        asserts.assert( d.get().match(Empty) );
+
+        asserts.done();
+        return asserts;
     }
 
     public function testEnum_args() {
+        var asserts = new AssertionBuffer();
+
         var e:Default<E> = NIL;
         
-        Assert.isTrue( e.get().match(Arg3(0, '', .0)) );
+        asserts.assert( e.get().match(Arg3(0, '', .0)) );
+
+        asserts.done();
+        return asserts;
     }
 
     public function testEnum_loop() {
+        var asserts = new AssertionBuffer();
+
         var f:Default<F> = NIL;
         
-        Assert.isTrue( f.get().match( Ref(Arg3(0, '', .0)) ) );
+        asserts.assert( f.get().match( Ref(Arg3(0, '', .0)) ) );
+
+        asserts.done();
+        return asserts;
     }
 
     public function testAbstract_simple() {
+        var asserts = new AssertionBuffer();
+
         var path:Default<Path> = NIL;
 
-        equals( '', path );
+        asserts.assert( '' == path );
+
+        asserts.done();
+        return asserts;
     }
 
     public function testTypedefAlias_simple() {
+        var asserts = new AssertionBuffer();
+
         var h:Default<H> = NIL;
 
-        equals( '', h );
+        asserts.assert( '' == h );
+
+        asserts.done();
+        return asserts;
     }
 
     public function testTypedefAlias_descendant() {
+        var asserts = new AssertionBuffer();
+
         var i:Default<I> = NIL;
 
-        equals( '', i.a );
+        asserts.assert( '' == i.a );
+
+        asserts.done();
+        return asserts;
     }
 
     public function testTypedefAlias_descendants() {
+        var asserts = new AssertionBuffer();
+
         var j:Default<J> = NIL;
 
-        equals( '', j.a.a );
+        asserts.assert( '' == j.a.a );
+
+        asserts.done();
+        return asserts;
     }
 
     public function testTypedefAlias_module() {
+        var asserts = new AssertionBuffer();
+
         var f:Default<TFoo> = NIL;
 
-        equals( '', f );
+        asserts.assert( '' == f );
+
+        asserts.done();
+        return asserts;
     }
 
     public function testTypedefAlias_module_descendants() {
+        var asserts = new AssertionBuffer();
+
         var f:Default<TFoo.TBar> = NIL;
 
-        equals( '', f.twins.a );
-        equals( '', f.twins.b );
+        asserts.assert( '' == f.twins.a );
+        asserts.assert( '' == f.twins.b );
+
+        asserts.done();
+        return asserts;
     }
 
     #if thx_core
     public function testString_thxcore() {
+        var asserts = new AssertionBuffer();
+
         var a:Default<String> = nil;
         var b:Default<String> = HELLO;
         
-        equals('', a);
-        equals(HELLO, b);
+        asserts.assert('' == a);
+        asserts.assert(HELLO == b);
+
+        asserts.done();
+        return asserts;
     }
     #end
 
     #if tink_core
     public function testString_tinkcore() {
+        var asserts = new AssertionBuffer();
+
         var a:Default<String> = Noise;
         var b:Default<String> = HELLO;
         
-        equals('', a);
-        equals(HELLO, b);
+        asserts.assert('' == a);
+        asserts.assert(HELLO == b);
+
+        asserts.done();
+        return asserts;
     }
     #end
 
     public function testDynamicAccess() {
+        var asserts = new AssertionBuffer();
+
         var a:Default<haxe.DynamicAccess<String>> = NIL;
 
-        Assert.isFalse( a.exists('') );
-        Assert.equals( 0, a.keys().length, '' + a.keys() );
+        asserts.assert( !a.exists('') );
+        asserts.assert( 0 == a.keys().length, '' + a.keys() );
+
+        asserts.done();
+        return asserts;
     }
 
+    #if !static
     public function testTinkJsonRepresentation() {
+        var asserts = new AssertionBuffer();
+
         var s:Default<{foo:String, bar:Int}> = NIL;
         s.bar = 100;
         var j = tink.Json.stringify(s);
 
-        Assert.equals( '{"bar":100,"foo":""}', j );
+        asserts.assert( '{"bar":100,"foo":""}' == j );
 
         var s:{foo:Default<String>, bar:Default<Int>} = tink.Json.parse( j );
 
-        Assert.equals( '', s.foo );
-        Assert.equals( 100, s.bar );
+        asserts.assert( '' == s.foo );
+        asserts.assert( 100 == s.bar );
+
+        asserts.done();
+        return asserts;
     }
+    #end
 
 }

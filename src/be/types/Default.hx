@@ -68,16 +68,18 @@ using tink.CoreApi;
     @:to public static #if !debug inline #end function asDefaultStringlyArray<T>(v:Safe<Array<T>>):Default<String> return new Default('' + v);
     @:to public static #if !debug inline #end function asDefaultObject(v:Safe<{}>):Default<{}> return new Default(v.get());
 
-    @:to public static #if !debug inline #end function asString(v:String):String return (v == null ? '' : v);
-    @:to public static #if !debug inline #end function asInt(v:Int):Int return (v == null ? 0 : v);
-    @:to public static #if !debug inline #end function asFloat(v:Float):Float return (v == null ? .0 : v);
-    @:to public static #if !debug inline #end function asBool(v:Bool):Bool return (v == null ? false : v);
-    @:to public static #if !debug inline #end function asArray<T>(v:Array<T>):Array<T> return (v == null ? [] : v);
-    @:to public static #if !debug inline #end function asStringlyArray<T>(v:Array<T>):String return '' + (v == null ? [] : v);
-    @:to public static #if !debug inline #end function asObject(v:{}):{} return (v == null ? {} : v);
+    @:to public static #if !debug inline #end function asString(v:String):String return #if !static (v == null ? '' : v) #else v #end;
+    @:to public static #if !debug inline #end function asInt(v:Int):Int return #if !static (v == null ? 0 : v) #else v #end;
+    @:to public static #if !debug inline #end function asFloat(v:Float):Float return #if !static (v == null ? .0 : v) #else v #end;
+    @:to public static #if !debug inline #end function asBool(v:Bool):Bool return #if !static (v == null ? false : v) #else v #end;
+    @:to public static #if !debug inline #end function asArray<T>(v:Array<T>):Array<T> return #if !static (v == null ? [] : v) #else v #end;
+    @:to public static #if !debug inline #end function asStringlyArray<T>(v:Array<T>):String return '' + #if !static (v == null ? [] : v) #else v #end;
+    @:to public static #if !debug inline #end function asObject(v:{}):{} return #if !static (v == null ? {} : v) #else v #end;
 
+    #if !static
     @:to public function toTinkRep():Representation<T> return new Representation(this);
     @:from public static function fromTinkRep<T>(v:Representation<T>):Default<T> return new Default(v.get());
+    #end
 
     @:from public static macro function fromNIL<T>(v:ExprOf<be.types.NIL>):ExprOf<be.types.Default<T>> {
         counter = 0;
