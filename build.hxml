@@ -3,14 +3,15 @@
 -lib tink_core
 -lib tink_macro
 -lib tink_json
+-lib tink_unittest
 
 -cp src
 -cp tests
 
--debug
+#-debug
 -dce full
 
--D default_debug
+#-D default_debug
 -D analyzer-optimize
 -D eval-stack
 -D nightly
@@ -29,3 +30,8 @@
 -D closure_prettyprint
 -D closure_language_in=ECMASCRIPT5
 -js bin/default.node.js
+
+#--next
+
+# See issue #15
+#-hl bin/default.hl

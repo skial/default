@@ -4,7 +4,8 @@
 
 ## Notes
 
-Passing a variable typed `Default<T>` to `Dynamic` will **not** check for nullness.
+- Passing a variable typed `Default<T>` to `Dynamic` will **not** check for nullness.
+- Static targets are **not** fully supported.
 
 ## Types
 
