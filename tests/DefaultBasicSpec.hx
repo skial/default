@@ -13,60 +13,9 @@ import be.types.Default;
 using tink.CoreApi;
 #end
 
-class A {
-
-    public var a:String;
-    public var b:Default<String> = NIL;
-    public var c:Int;
-    public var d:Int;
-    public var e:Default<Bool> = NIL;
-
-    public function new(a:String, ?c:Int, ?d:Default<Int>) {
-        this.a = a;
-        this.c = c;
-        this.d = d;
-    }
-
-}
-
-typedef C = {
-    var a:String;
-    var b:Default<Int>;
-    var c(default, default):Float;
-    var d(default, default):Default<Array<Int>>;
-    var e:C;
-}
-
-enum D {
-    Empty;
-}
-
-enum E {
-    Arg3(a:Int, b:String, c:Float);
-}
-
-enum F {
-    Loop(v:F);
-    Ref(r:E);
-}
-
-typedef G = {
-    var a:Default<Path>;
-}
-
-typedef H = String;
-
-typedef I = {
-    var a:H;
-}
-
-typedef J = {
-    var a:I;
-}
-
 abstract Path(String) from String to String {}
 
-@:keep class DefaultSpec {
+class DefaultBasicSpec {
 
     public static inline var HELLO:String = 'hello';
     public static inline var N1000:Int = 1000;
@@ -219,135 +168,12 @@ abstract Path(String) from String to String {}
         return asserts;
     }
 
-    public function testClasses() {
-        var asserts = new AssertionBuffer();
-
-        var a:Default<A> = NIL;
-
-        asserts.assert( '' == a.a );
-        asserts.assert( '' == a.b );
-        asserts.assert( 0 == a.c );
-        asserts.assert( 0 == a.d );
-        asserts.assert( false == a.e );
-
-        asserts.done();
-        return asserts;
-    }
-
-    public function testTypedefs() {
-        var asserts = new AssertionBuffer();
-
-        var c:Default<C> = NIL;
-
-        asserts.assert( '' == c.a );
-        asserts.assert( 0 == c.b );
-        asserts.assert( .0 == c.c );
-        asserts.assert( '' + [] == '' + c.d );
-
-        asserts.assert( '' == c.e.a );
-        asserts.assert( 0 == c.e.b );
-        asserts.assert( .0 == c.e.c );
-        asserts.assert( '' + [] == '' + c.e.d );
-
-        asserts.done();
-        return asserts;
-    }
-
-    public function testEnum_simple() {
-        var asserts = new AssertionBuffer();
-
-        var d:Default<D> = NIL;
-        
-        asserts.assert( d.get().match(Empty) );
-
-        asserts.done();
-        return asserts;
-    }
-
-    public function testEnum_args() {
-        var asserts = new AssertionBuffer();
-
-        var e:Default<E> = NIL;
-        
-        asserts.assert( e.get().match(Arg3(0, '', .0)) );
-
-        asserts.done();
-        return asserts;
-    }
-
-    public function testEnum_loop() {
-        var asserts = new AssertionBuffer();
-
-        var f:Default<F> = NIL;
-        
-        asserts.assert( f.get().match( Ref(Arg3(0, '', .0)) ) );
-
-        asserts.done();
-        return asserts;
-    }
-
     public function testAbstract_simple() {
         var asserts = new AssertionBuffer();
 
         var path:Default<Path> = NIL;
 
         asserts.assert( '' == path );
-
-        asserts.done();
-        return asserts;
-    }
-
-    public function testTypedefAlias_simple() {
-        var asserts = new AssertionBuffer();
-
-        var h:Default<H> = NIL;
-
-        asserts.assert( '' == h );
-
-        asserts.done();
-        return asserts;
-    }
-
-    public function testTypedefAlias_descendant() {
-        var asserts = new AssertionBuffer();
-
-        var i:Default<I> = NIL;
-
-        asserts.assert( '' == i.a );
-
-        asserts.done();
-        return asserts;
-    }
-
-    public function testTypedefAlias_descendants() {
-        var asserts = new AssertionBuffer();
-
-        var j:Default<J> = NIL;
-
-        asserts.assert( '' == j.a.a );
-
-        asserts.done();
-        return asserts;
-    }
-
-    public function testTypedefAlias_module() {
-        var asserts = new AssertionBuffer();
-
-        var f:Default<TFoo> = NIL;
-
-        asserts.assert( '' == f );
-
-        asserts.done();
-        return asserts;
-    }
-
-    public function testTypedefAlias_module_descendants() {
-        var asserts = new AssertionBuffer();
-
-        var f:Default<TFoo.TBar> = NIL;
-
-        asserts.assert( '' == f.twins.a );
-        asserts.assert( '' == f.twins.b );
 
         asserts.done();
         return asserts;

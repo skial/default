@@ -31,7 +31,8 @@
 -D closure_language_in=ECMASCRIPT5
 -js bin/default.node.js
 
-#--next
+--next
 
+#-D dump
 # See issue #15
-#-hl bin/default.hl
+-hl bin/default.hl
