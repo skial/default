@@ -8,7 +8,10 @@ class Main {
     public static function main() {
         Runner.run(
             TestBatch.make([
-               new DefaultSpec(),
+                new DefaultBasicSpec(),
+                new DefaultEnumSpec(),
+                new DefaultClassSpec(),
+                new DefaultTypedefSpec(),
             ])
 
         ).handle(Runner.exit);
