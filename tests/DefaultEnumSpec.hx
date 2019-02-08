@@ -26,13 +26,11 @@ enum F {
     Ref(r:E);
 }
 
-class DefaultEnumSpec {
+@:asserts class DefaultEnumSpec {
 
     public function new() {}
 
     public function testEnum_simple() {
-        var asserts = new AssertionBuffer();
-
         var d:Default<D> = NIL;
         
         asserts.assert( d.get().match(Empty) );
@@ -42,8 +40,6 @@ class DefaultEnumSpec {
     }
 
     public function testEnum_args() {
-        var asserts = new AssertionBuffer();
-
         var e:Default<E> = NIL;
         
         asserts.assert( e.get().match(Arg3(0, '', .0)) );
@@ -53,8 +49,6 @@ class DefaultEnumSpec {
     }
 
     public function testEnum_loop() {
-        var asserts = new AssertionBuffer();
-
         var f:Default<F> = NIL;
         
         asserts.assert( f.get().match( Ref(Arg3(0, '', .0)) ) );

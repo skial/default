@@ -1,7 +1,7 @@
 package ;
 
 #if thx_core
-import thx.Nil;
+//import thx.Nil;
 #end
 
 import tink.unit.AssertionBuffer;
@@ -12,6 +12,22 @@ import be.types.Default;
 #if tink_core
 using tink.CoreApi;
 #end
+
+typedef Ref = {
+    ref:Ref,
+}
+
+typedef RefFunc = {
+    ref:Void->RefFunc,
+}
+
+typedef A_ = {
+    function make<T>(v:T):A_;
+}
+
+typedef B_<T> = {>A_,
+    function b():T;
+}
 
 typedef C = {
     var a:String;
@@ -35,15 +51,41 @@ typedef J = {
     var a:I;
 }
 
-class DefaultTypedefSpec {
+@:asserts class DefaultTypedefSpec {
 
     public function new() {}
 
+    public function testSingleField_object() {
+        var foo:Default<{foo:Int}> = nil;
+        asserts.assert( foo != null );
+        #if !static asserts.assert( foo.foo != null ); #end
+        asserts.assert( foo.foo == 0 );
+        asserts.done();
+
+        return asserts;
+    }
+
+    public function testCircular_typedef() {
+        var foo:Default<Ref> = nil;
+        asserts.assert( foo != null );
+        asserts.assert( foo.ref != null );
+        asserts.done();
+
+        return asserts;
+    }
+
+    public function testCircularCall_typedef() {
+        var foo:Default<RefFunc> = nil;
+        asserts.assert( foo != null );
+        asserts.assert( foo.ref() != null );
+        asserts.done();
+
+        return asserts;
+    }
+
     public function testTypedefs() {
-        var asserts = new AssertionBuffer();
-
         var c:Default<C> = NIL;
-
+        
         asserts.assert( '' == c.a );
         asserts.assert( 0 == c.b );
         asserts.assert( .0 == c.c );
@@ -60,8 +102,6 @@ class DefaultTypedefSpec {
     }
 
     public function testTypedefAlias_simple() {
-        var asserts = new AssertionBuffer();
-
         var h:Default<H> = NIL;
 
         asserts.assert( '' == h );
@@ -71,8 +111,6 @@ class DefaultTypedefSpec {
     }
 
     public function testTypedefAlias_descendant() {
-        var asserts = new AssertionBuffer();
-
         var i:Default<I> = NIL;
 
         asserts.assert( '' == i.a );
@@ -82,8 +120,6 @@ class DefaultTypedefSpec {
     }
 
     public function testTypedefAlias_descendants() {
-        var asserts = new AssertionBuffer();
-
         var j:Default<J> = NIL;
 
         asserts.assert( '' == j.a.a );
@@ -93,8 +129,6 @@ class DefaultTypedefSpec {
     }
 
     public function testTypedefAlias_module() {
-        var asserts = new AssertionBuffer();
-
         var f:Default<TFoo> = NIL;
 
         asserts.assert( '' == f );
@@ -104,12 +138,23 @@ class DefaultTypedefSpec {
     }
 
     public function testTypedefAlias_module_descendants() {
-        var asserts = new AssertionBuffer();
-
         var f:Default<TFoo.TBar> = NIL;
 
         asserts.assert( '' == f.twins.a );
         asserts.assert( '' == f.twins.b );
+
+        asserts.done();
+        return asserts;
+    }
+
+    // @see https://gitlab.com/b.e/default/issues/17
+    public function testIssue17() {
+        var f:Default<B_<Int>> = NIL;
+
+        asserts.assert( f != null );
+        asserts.assert( f.make(0) != null );
+        asserts.assert( f.b() == 0 );
+        asserts.assert( f.make(10000).make(9) != null );
 
         asserts.done();
         return asserts;
