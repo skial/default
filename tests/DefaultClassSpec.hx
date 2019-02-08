@@ -29,13 +29,18 @@ class A {
 
 }
 
-class DefaultClassSpec {
+class B {
+    public var i:Int = 100;
+    private inline function new() {
+
+    }
+}
+
+@:asserts class DefaultClassSpec {
 
     public function new() {}
 
-    public function testNormalInit_Classes() {
-        var asserts = new AssertionBuffer();
-
+    public function testNormalCtor_Manual() {
         var a:A = new A('', 0, 0);
 
         asserts.assert( '' == a.a );
@@ -48,9 +53,7 @@ class DefaultClassSpec {
         return asserts;
     }
 
-    public function testDefaultInit_Classes() {
-        var asserts = new AssertionBuffer();
-
+    public function testDefaultCtor_Public() {
         var a:Default<A> = NIL;
 
         asserts.assert( '' == a.a );
@@ -59,6 +62,14 @@ class DefaultClassSpec {
         asserts.assert( 0 == a.d );
         asserts.assert( false == a.e );
 
+        asserts.done();
+        return asserts;
+    }
+
+    public function testDefaultCtor_Private() {
+        var b:Default<B> = nil;
+        asserts.assert(b != null);
+        asserts.assert(b.i == 100);
         asserts.done();
         return asserts;
     }

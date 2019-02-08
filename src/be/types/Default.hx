@@ -6,9 +6,13 @@ import tink.json.Representation;
 import haxe.macro.Type;
 import haxe.macro.Expr;
 import haxe.macro.Expr.QuoteStatus;
+import be.types._default.Stack;
+import haxe.macro.TypeTools.toField;
 
 using tink.MacroApi;
+using be.types.Default;
 using haxe.macro.Context;
+using haxe.macro.TypeTools;
 #end
 
 using Std;
@@ -54,10 +58,12 @@ using tink.CoreApi;
     @:from public static #if !debug inline #end function fromUnsafeObject(v:{}):Default<{}> return of(v, {});
 
     @:from public static macro function fromStruct(v:ExprOf<{}>):Expr {
-        #if default_debug
+        var r = _typeToValue( v.typeof(), v.pos );
+        #if (debug && default_debug)
         trace( v.toString(), v.typeof() );
+        trace( r.toString() );
         #end
-        return macro @:pos(v.pos) be.types.Default.of( $v, $e{ typeToValue(v.typeof(), v.pos) } );
+        return macro @:pos(v.pos) be.types.Default.of( $v, $r );
     }
 
     @:to public static #if !debug inline #end function asDefaultString(v:Safe<String>):Default<String> return new Default(v.get());
@@ -83,20 +89,24 @@ using tink.CoreApi;
 
     @:from public static macro function fromNIL<T>(v:ExprOf<be.types.NIL>):ExprOf<be.types.Default<T>> {
         counter = 0;
-        var v = typeToValue( Context.getExpectedType(), v.pos );
+        var v = _typeToValue( Context.getExpectedType(), v.pos );
         var ctype = Context.getExpectedType().toComplex();
-        #if default_debug
+        #if (debug && default_debug)
         trace( v.toString() );
         #end
-        return macro @:pos(v.pos) be.types.Default.fromSafeValue($v);
+        var result = macro @:pos(v.pos) be.types.Default.fromSafeValue($v);
+        #if (debug && default_debug)
+        trace( result.toString() );
+        #end
+        return result;
     }
 
     #if thx_core 
     @:from public static macro function fromThxNil<T>(v:ExprOf<thx.Nil>):ExprOf<be.types.Default<T>> {
         counter = 0;
-        var v = typeToValue( Context.getExpectedType(), v.pos );
+        var v = _typeToValue( Context.getExpectedType(), v.pos );
         var ctype = Context.getExpectedType().toComplex();
-        #if default_debug
+        #if (debug && default_debug)
         trace( v.toString() );
         #end
         return macro @:pos(v.pos) be.types.Default.fromSafeValue($v);
@@ -106,9 +116,9 @@ using tink.CoreApi;
     #if tink_core 
     @:from public static macro function fromTinkNil<T>(v:ExprOf<tink.core.Noise>):ExprOf<be.types.Default<T>> {
         counter = 0;
-        var v = typeToValue( Context.getExpectedType(), v.pos );
+        var v = _typeToValue( Context.getExpectedType(), v.pos );
         var ctype = Context.getExpectedType().toComplex();
-        #if default_debug
+        #if (debug && default_debug)
         trace( v.toString() );
         #end
         return macro @:pos(v.pos) be.types.Default.fromSafeValue($v);
@@ -116,240 +126,328 @@ using tink.CoreApi;
     #end
 
     #if (macro || eval)
-    private static var counter = 0;
-    private static function typeToValue(type:Type, pos:Position, ?toplevel:Map<String, Var>):Expr {
-        var result = null;
-        var ctype = type.toComplex();
-        var stype = ctype.toString();
+    private static var counter = 1;
 
-        var first = toplevel == null;
-        if (first) toplevel = new Map();
+    private static function _typeToValue(type:Type, pos:Position):Expr {
+        var result = switch basicType(type.reduce(), pos) {
+            case macro null:
+                var explosion = explode(type, pos);
+                explosion.snapshot(pos);
+
+            case x:
+                x;
+
+        }
         
-        if (!toplevel.exists(stype)) {
-            
-            switch type {
-                case TAbstract(_.get() => abs, p) if (abs.name == Default):
-                    result = typeToValue(p[0], pos, toplevel);
+        #if (debug && default_debug)
+        trace( result.toString() );
+        #end
+        return result;
+    }
+
+    private static function explode(type:Type, pos:Position, ?params:Array<Type>, ?stack:Stack):Stack {
+        var result = new Stack();
+        var id:Lazy<String> = '$Def${counter++}';
+        var ctype:Lazy<ComplexType> = () -> type.toComplexType();
+        var _var:Lazy<Var> = ctype.map( ct -> { name:id.get(), type:ct, isFinal:false, expr:macro null } );
+
+        if (stack == null) stack = result;
+        if (params == null) params = [];
+
+        switch type {
+            case TEnum(_.get() => enm, params):
+                var empties = [];
+                var ctors = [];
+                var _variable = _var.get();
                 
-                case TEnum(_.get() => enm, p) if (enm.names.length > 0):
-                    var r = null;
-                    
-                    for (name in enm.names) switch enm.constructs.get(name).type {
-                        case TFun(args, ret) if (args.length > 0 && args.filter(a -> a.t.toComplex().toString() == stype).length == 0):
-                            r = '$stype.$name'.resolve();
-                            
-                            var cargs = [for (arg in args) {
-                                var ct = arg.t.toComplex();
-                                var st = ct.toString();
-
-                                var def = typeToValue(arg.t, pos, toplevel);
-                                avoidRecursion(ct, def, arg.name, toplevel);
-
-                            }];
-
-                            r = r.call(cargs);
-                            break;
-
-                        case TEnum(_, _):
-                            r = '$stype.$name'.resolve();
-                            break;
-
-                        case x:
-                            #if default_debug trace(x); #end
-
+                for (name in enm.names) {
+                    var field = enm.constructs.get(name);
+                    switch field.type {
+                        case TEnum(_, _): empties.push( field );
+                        case _: ctors.push( field );
                     }
-                    if (r == null) Context.error('Could not construct ${stype}.', enm.pos);
-                    result = r;
+                }
 
-                case TInst(_.get() => cls, _):
-                    switch cls.name {
-                        case 'Array': result = macro @:pos(pos) [];
-                        case 'String': result = macro @:pos(pos) '';
-                        case x: 
-                            if (cls.constructor != null) {
-                                var tpath = stype.asTypePath();
-                                var ctor = cls.constructor.get();
-                                
-                                switch ctor.type.reduce() {
-                                    case TFun(args, _):
-                                        if (cls.meta.has(StructInit)) {
-                                            var call = [];
-                                            for (a in args) call.push( {field: a.name, expr: typeToValue(a.t, ctor.pos, toplevel), quotes: quotes()} );
-                                            result = {expr: EObjectDecl(call), pos: ctor.pos};
+                result.vars.push({v:_variable, t:type});
 
-                                        } else {
-                                            var call = [];
-                                            for (a in args) {
-                                                var e = typeToValue(a.t, ctor.pos, toplevel);
-                                                call.push( e );
-                                            }
-                                            result = macro @:pos(ctor.pos) new $tpath($a{call});
+                if (empties.length > 0) {
+                    _variable.expr = '${ctype.get().toString()}.${empties[0].name}'.resolve();
 
-                                        }
+                } else {
+                    for (ctor in ctors) switch ctor.type {
+                        case TFun(args, ret) if (args.filter( arg -> arg.t.unify(type) ).length == 0):
+                            var _args = [];
+                            
+                            for (arg in args) {
+                                var expr = null;
 
-                                        var id = '$Def${counter++}';
-                                        toplevel.set(stype, {name: id, type: ctype, expr: result});
-                                        result = macro @:pos(pos) cast $i{id};
+                                for (pair in result.vars) if (pair.t.unify(arg.t)) {
+                                    var name = pair.v.name;
+                                    expr = macro $i{name};
+                                    break;
 
-                                    case x:
-                                        result = typeToValue(x, pos);
+                                }
+                            
+                                if (expr == null) expr = basicType(arg.t, pos);
+
+                                if (expr.isNullExpr()) {
+                                    var explosion = explode(arg.t, pos, params, result);
+                                    result = result + explosion;
+                                    expr = macro $i{explosion.vars[explosion.vars.length-1].v.name};
+
                                 }
 
-                            } else {
-                                #if default_debug trace(x); #end
+                                _args.push( expr );
 
                             }
 
+                            result.fields.push(
+                                macro $i{_variable.name} = $e{
+                                    '${ctype.get().toString()}.${ctor.name}'.resolve().call(_args)
+                                }
+                            );
+                            break;
+
+                        case x:
+                            #if (debug && default_debug)
+                            trace( x );
+                            #end
+
                     }
 
-                case TAbstract(_.get() => abs, p) if (abs.meta.has(':coreType')):
-                    switch abs.name {
-                        case 'Int': result = macro @:pos(pos) 0;
-                        case 'Float': result = macro @:pos(pos) .0;
-                        case 'Bool': result = macro @:pos(pos) false;
-                        case 'Null': result = typeToValue(p[0], pos);
+                }
+
+            case TInst(_.get() => cls, _params):
+                var _variable = _var.get();
+                var tpath = type.getID().asTypePath();
+
+                if (cls.constructor != null) {
+                    var ctor = cls.constructor.get();
+                    var _args = switch ctor.type.reduce() {
+                        case TFun(args, _):
+                            [for (arg in args) basicType(arg.t, pos)];
+
                         case x: 
-                            #if default_debug trace(x); #end
+                            #if (debug && default_debug)
+                            trace( x );
+                            #end
+                            [];
 
                     }
 
-                case TAbstract(_.get() => abs, p) if (!abs.meta.has(':coreType')):
-                    result = typeToValue( type.followWithAbstracts(true), pos, toplevel );
+                    _variable.expr = macro new $tpath($a{_args});
+                    if (!ctor.isPublic) _variable.expr = macro @:privateAccess $e{_variable.expr};
+                }
 
-                case TAnonymous(_.get() => anon) if (anon.fields.length == 0):
-                    result = macro @:pos(pos) @:Anonymous @:Empty {};
+                result.vars.push({v:_variable, t:type});
 
-                case TAnonymous(_.get() => anon) if (anon.fields.length > 0):
-                    /**
-                    For 
-                    ```
-                    typedef A = {
-                        var str:String;
-                        var a:A;
-                    }
-                    ```
+            case TAbstract(_.get() => {name:Default}, _params):
+                var explosion = explode(_params[0], pos, params);
+                result = result + explosion;
+
+            case TType(_.get() => def, _params):
+                var _type = def.params.length > 0
+                    ? def.type.applyTypeParameters(def.params, params.concat( _params ))
+                    : def.type;
+                var explosion = explode(_type, pos, params.concat( _params ) );
+                result = result + explosion;
+
+            case TAnonymous(_.get() => anon):
+                var _variable = _var.get();
+                var laterAssignments = [];
+                var typeFields:Array<Field> = [];
+                var objectFields:Array<ObjectField> = [];
+                
+                for (field in anon.fields) {
+                    var fieldType = field.type;
+                    if (field.params.length > 0) fieldType = fieldType.applyTypeParameters(field.params, params);
                     
-                    return 
-                    ```
-                    {
-                        var def0 = null;
-                        var def1 = { str:'', a:null };
-                        var def2 = def1.a = def1;
-                        def1;
-                    }
-                    ```
-                    **/
-
-                    var fields = [];
+                    var cftype = fieldType.toComplexType();
+                    var expr = basicType(fieldType, field.pos);
                     
-                    for (field in anon.fields) {
+                    if (expr.isNullExpr()) laterAssignments.push( field );
+
+                    objectFields.push({ field:field.name, expr:expr, quotes:Unquoted });
+
+                    var access = [field.isPublic ? APublic : APrivate];
+                    if (field.meta.has(':final')) access.push(AFinal);
+                    function varAccess(access:VarAccess, get:Bool):String {
+                        return switch access {
+                            case AccNo: 'null';
+                            case AccNever: 'never';
+                            case AccCall: get?'get':'set';
+                            case _: 'default';
+                        }
+                    }
+                    var kind = switch [field.kind, fieldType] {
+                        case [FVar(read, write), ret]:
+                            FProp(
+                                varAccess(read, true), 
+                                varAccess(write, false),
+                                ret.toComplex(),
+                                null
+                            );
+
+                        case [FMethod(fkind), TFun(args, ret)]:
+                            access.push(ADynamic);
+                            FFun({
+                                args: [for (arg in args) {
+                                    name: arg.name, opt: arg.opt, type: arg.t.toComplex(),
+                                }],
+                                ret: ret.toComplex(),
+                                expr: null
+                            });
+
+                        case [a, b]:
+                            #if (debug && default_debug)
+                            trace( a );
+                            trace( b );
+                            #end
+                            throw 'Unsupported `Field` kind. Use `-D default_debug` with `-debug` for more information.';
+                            null;
+
+                    }
+
+                    typeFields.push( {
+                        name: field.name, pos: field.pos, doc: field.doc,
+                        kind: kind, access: access, meta: field.meta.get()
+                    } );
+
+                }
+
+                _variable.type = TAnonymous(typeFields);
+                _variable.expr = { expr:EObjectDecl(objectFields), pos:pos };
+
+                result.vars.push( {v:_variable, t:type} );
+
+                for (field in laterAssignments) {
+                    var expr = macro null;
+                    var fieldType = field.type;
+
+                    if (field.params.length > 0) {
+                        fieldType = fieldType.applyTypeParameters(field.params, params);
+                    }
+
+                    for (v in stack.vars) if (v.v.type.toType().sure().unify(fieldType)) {
+                        expr = macro $i{v.v.name};
+                        result.fields.push( macro $p{[id, field.name]} = $i{v.v.name} );
+                        break;
+                    }
+
+                    // Run again in case of more complex types.
+                    if (expr.isNullExpr()) {
+                        var explosion = explode(fieldType, pos, params, result);
                         
-                        var ctype = field.type.toComplex();
-                        var def = typeToValue(field.type, field.pos, toplevel);
-                        var expr = avoidRecursion(ctype, def, field.name, toplevel);
-                        var field = {field: field.name, expr: macro ($expr:$ctype), quotes: quotes()};
-                        fields.push( field );
+                        for (v in explosion.vars) if (v.v.type.toType().sure().unify(fieldType)) {
+                            result.fields.push( macro $p{[id, field.name]} = $i{v.v.name} );
+                            break;
+                            
+                        }
+
+                        result = result + explosion;
 
                     }
-                    
-                    result = macro @:pos(pos) @:Anonymous $e{{expr:EObjectDecl(fields), pos:Context.currentPos()}};
 
-                case TType(_.get() => td, p):
-                    if (td.name == 'Null') {
-                        result = typeToValue( p[0], pos, toplevel );
+                }
 
-                    } else {
-                        result = macro @:pos(pos) $e{ cache(td.type, stype, ctype, toplevel) };
+            case TFun(args, ret):
+                var _variable = _var.get();
+                result.vars.push( {v:_variable, t:type} );
+                var _args = args.map( a -> ({
+                    name:a.name, 
+                    opt:a.opt, 
+                    type:a.t.toComplex(),
+                }:FunctionArg) );
 
-                    }
-                    
-                case TLazy(l):
-                    result = typeToValue( l(), pos );
+                var _ret = basicType(ret, pos);
+                
+                switch _ret {
+                    case macro null:
+                        for (pair in stack.vars) {
+                            if (pair.t.unify(ret) || pair.v.type.toType().sure().unify(ret)) {
+                                _ret = macro cast $i{pair.v.name};
+                                break;
 
-                case TDynamic(n) if (n == null):
-                    Context.fatalError( 'Could not detect type. Compiler has passed along $type.', Context.currentPos() );
-                    result = macro @:pos(pos) {};
+                            }
 
-                case TDynamic(n) if (n != null):
-                    result = macro @:pos(pos) {};
+                        }
 
-                case x: trace(x);
-            }
+                    case _:
 
-        } else {
-            var v = toplevel.get(stype);
-            result = macro @:pos(pos) $i{v.name};
-            
-        }
 
-        if (first) {
-            var vars = [];
-            var exprs = [];
-            
-            for (key in toplevel.keys()) {
-                var v = toplevel.get(key);
-                if (v.expr == null) v.expr = macro null;
-                vars.push(v);
+                }
 
-            }
-            
-            vars.sort( function (a, b) {
-                var _a = a.name.substring(DefSub).parseInt();
-                var _b = b.name.substring(DefSub).parseInt();
-                return ( _a == _b ) ? 0 : (((_a) > (_b)) ? 1 : -1);
-            } );
-            exprs = vars.map(v -> {expr:EVars([v]), pos:Context.currentPos()});
-            
-            if (exprs.length > 0) {
-                exprs.push(macro $result);
-                result = macro @:pos(exprs[exprs.length-1].pos) @:mergeBlock $b{exprs};
+                _variable.expr = {
+                    expr:EFunction(null, {
+                        args: _args,
+                        ret: ret.toComplex(),
+                        expr: macro return $_ret,
+                        params: [],
+                    }), 
+                    pos:pos 
+                }
 
-            }
+            case x:
+                #if (debug && default_debug)
+                trace( x );
+                #end
 
         }
         
         return result;
     }
 
-    private static function cache(type:Type, stype:String, ctype:ComplexType, toplevel:Map<String, Var>):Expr {
-        var id = '$Def${counter++}';
-        toplevel.set(stype, {name: id, type: ctype, expr: macro null});
-        var result = typeToValue( type, Context.currentPos(), toplevel );
-        toplevel.set('$stype', {name: id, type: ctype, expr: macro @:DefaultCache $result});
-        return macro $i{id};
-    }
-
-    private static function avoidRecursion(ctype:ComplexType, defExpr:Expr, access:String, toplevel:Map<String, Var>):Expr {
-        var result = defExpr;
-        var name = ctype.toString();
-        var variable = toplevel.exists(name) ? toplevel.get(name) : null;
-        var variableName = '$Def${counter}';
+    private static function basicType(type:Type, pos:Position):Expr {
+        var result = macro @:pos(pos) null;
         
-        if (variable != null) {
-            result = variable.expr;
-            variableName = variable.name;
+        switch type {
+            case TAbstract(_.get() => {name:Default}, _params):
+                result = basicType(_params[0], pos);
 
-        }
+            case TInst(_.get() => cls, _params) if (cls.meta.has(':coreType') || cls.meta.has(':coreApi')):
+                switch cls.name {
+                    case 'Array': result = macro @:pos(pos) [];
+                    case 'String': result = macro @:pos(pos) be.types.Defaults.string;
+                    case x: trace( x );
+                }
 
-        switch result {
-            case {expr:EConst(CIdent(value))} if (value == 'null'):
-                variable.expr = macro @:pos(defExpr.pos) @:AnonField $i{variable.name}.$access = $i{'$Def${counter-1}'};
-                var name = ~/[\.\+]+/g.replace(name + counter + Date.now().getTime(), '');
-                toplevel.set( name, variable );
+            case TAbstract(_.get() => abs, _params) if(abs.meta.has(':coreType') || abs.meta.has(':coreApi')):
+                switch abs.name {
+                    case 'Int': result = macro @:pos(pos) be.types.Defaults.int;
+                    case 'Float': result = macro @:pos(pos) be.types.Defaults.float;
+                    case 'Bool': result = macro @:pos(pos) be.types.Defaults.bool;
+                    case 'Null': result = basicType(_params[0], pos);
+                    case x: 
+                        #if (debug && default_debug)
+                        trace( x );
+                        #end
+                }
+
+            case TType(_.get() => def, _params) if (def.name == 'Null'):
+                result = basicType(_params[0], pos);
+
+            case TType(_.get() => def, _params):
+                result = basicType(def.type, pos);
+
+            case TDynamic(n) if (n != null):
+                result = macro @:pos(pos) {};
+
+            case TAbstract(_.get() => abs, _params):
+                result = basicType(abs.type, pos);
 
             case x:
+                #if (debug && default_debug)
+                trace( x );
+                #end
 
         }
-        
-        return macro @:pos(defExpr.pos) $result;
+
+        return result;
     }
 
-    private static inline function quotes() {
-        #if ((haxe_ver <= "4.000") && !nightly)
-        return NoQuotes;
-        #elseif ((haxe_ver <= "4.000") && nightly)
-        return Unquoted;
-        #end
+    public static inline function isNullExpr(v:Expr):Bool return switch v {
+        case macro null: true;
+        case _: false;
     }
     #end
 

@@ -15,7 +15,7 @@ using tink.CoreApi;
 
 abstract Path(String) from String to String {}
 
-class DefaultBasicSpec {
+@:asserts class DefaultBasicSpec {
 
     public static inline var HELLO:String = 'hello';
     public static inline var N1000:Int = 1000;
@@ -24,8 +24,6 @@ class DefaultBasicSpec {
     public function new() {}
 
     public function testString() {
-        var asserts = new AssertionBuffer();
-
         var a:Default<String> = nil;
         var b:Default<String> = HELLO;
         
@@ -38,8 +36,6 @@ class DefaultBasicSpec {
 
     #if !static
     public function testNullString() {
-        var asserts = new AssertionBuffer();
-
         var a:Default<String> = null;
         var b:Default<String> = HELLO;
         asserts.assert(a == '');
@@ -51,8 +47,6 @@ class DefaultBasicSpec {
     #end
 
     public function testInt() {
-        var asserts = new AssertionBuffer();
-
         var a:Default<Int> = NIL;
         var b:Default<Int> = N1000;
         asserts.assert(a == 0);
@@ -64,8 +58,6 @@ class DefaultBasicSpec {
 
     #if !static
     public function testNullInt() {
-        var asserts = new AssertionBuffer();
-
         var a:Default<Int> = null;
         var b:Default<Int> = N1000;
         asserts.assert(a == 0);
@@ -77,8 +69,6 @@ class DefaultBasicSpec {
     #end
 
     public function testFloat() {
-        var asserts = new AssertionBuffer();
-
         var a:Default<Float> = NIL;
         var b:Default<Float> = F1000;
         asserts.assert(a == .0);
@@ -90,8 +80,6 @@ class DefaultBasicSpec {
 
     #if !static
     public function testNullFloat() {
-        var asserts = new AssertionBuffer();
-
         var a:Default<Float> = null;
         var b:Default<Float> = F1000;
         
@@ -104,8 +92,6 @@ class DefaultBasicSpec {
     #end
 
     public function testObject() {
-        var asserts = new AssertionBuffer();
-
         var a:Default<{}> = NIL;
         var b:Default<{a:String}> = {a:'1'};
         
@@ -118,8 +104,6 @@ class DefaultBasicSpec {
 
     #if !static
     public function testNullObject() {
-        var asserts = new AssertionBuffer();
-
         var a:Default<{}> = null;
         var b:Default<{a:String}> = {a:'1'};
 
@@ -132,8 +116,6 @@ class DefaultBasicSpec {
     #end
 
     public function testTypedObject() {
-        var asserts = new AssertionBuffer();
-
         var b:Default<{a:String}> = NIL;
 
         asserts.assert( {a:''}.a == b.a );
@@ -144,18 +126,14 @@ class DefaultBasicSpec {
 
     // Currently doesnt build a matching struct at runtime.
     /*public function testNullTypedObject() {
-        var asserts = new AssertionBuffer();
-
         var b:Default<{a:String}> = null;
-        same({a:''}, cast b);
+        asserts.assert('' + {a:''} == '' + b);
 
         asserts.done();
         return asserts;
     }*/
 
     public function testArray() {
-        var asserts = new AssertionBuffer();
-
         var a:Default<Array<String>> = NIL;
         var b:Default<Array<String>> = ['a', 'b'];
 
@@ -168,9 +146,8 @@ class DefaultBasicSpec {
         return asserts;
     }
 
+    // TODO throws analyser xml
     public function testAbstract_simple() {
-        var asserts = new AssertionBuffer();
-
         var path:Default<Path> = NIL;
 
         asserts.assert( '' == path );
@@ -181,8 +158,6 @@ class DefaultBasicSpec {
 
     #if thx_core
     public function testString_thxcore() {
-        var asserts = new AssertionBuffer();
-
         var a:Default<String> = nil;
         var b:Default<String> = HELLO;
         
@@ -196,8 +171,6 @@ class DefaultBasicSpec {
 
     #if tink_core
     public function testString_tinkcore() {
-        var asserts = new AssertionBuffer();
-
         var a:Default<String> = Noise;
         var b:Default<String> = HELLO;
         
@@ -209,9 +182,8 @@ class DefaultBasicSpec {
     }
     #end
 
+    // Throws analyser xml
     public function testDynamicAccess() {
-        var asserts = new AssertionBuffer();
-
         var a:Default<haxe.DynamicAccess<String>> = NIL;
 
         asserts.assert( !a.exists('') );
@@ -223,8 +195,6 @@ class DefaultBasicSpec {
 
     #if !static
     public function testTinkJsonRepresentation() {
-        var asserts = new AssertionBuffer();
-
         var s:Default<{foo:String, bar:Int}> = NIL;
         s.bar = 100;
         var j = tink.Json.stringify(s);

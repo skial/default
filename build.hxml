@@ -1,4 +1,3 @@
--lib utest
 -lib thx.core
 -lib tink_core
 -lib tink_macro
@@ -11,7 +10,7 @@
 #-debug
 -dce full
 
-#-D default_debug
+-D default_debug
 -D analyzer-optimize
 -D eval-stack
 -D nightly
@@ -25,14 +24,11 @@
 --next
 
 -lib hxnodejs
-#-lib closure
-#-D closure_advanced
--D closure_prettyprint
--D closure_language_in=ECMASCRIPT5
--js bin/default.node.js
 
---next
-
-#-D dump
-# See issue #15
--hl bin/default.hl
+-js bin/default.js
+#
+#--next
+#
+##-D dump
+## See issue #15
+#-hl bin/default.hl
