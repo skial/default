@@ -7,7 +7,6 @@ import haxe.macro.Type;
 import haxe.macro.Expr;
 import haxe.macro.Expr.QuoteStatus;
 import be.types._default.Stack;
-import haxe.macro.TypeTools.toField;
 
 using tink.MacroApi;
 using be.types.Default;
@@ -148,8 +147,9 @@ using tink.CoreApi;
     private static function explode(type:Type, pos:Position, ?params:Array<Type>, ?stack:Stack):Stack {
         var result = new Stack();
         var id:Lazy<String> = '$Def${counter++}';
-        var ctype:Lazy<ComplexType> = () -> type.toComplexType();
-        var _var:Lazy<Var> = ctype.map( ct -> { name:id.get(), type:ct, isFinal:false, expr:macro null } );
+        var ttype:Lazy<Type> = () -> type;
+        var ctype:Lazy<ComplexType> = ttype.map( t -> t.toComplexType() );
+        var _var:Lazy<Var> = ctype.map( ct -> { name:id.get(), type:macro:Null<$ct>, isFinal:false, expr:macro null } );
 
         if (stack == null) stack = result;
         if (params == null) params = [];
@@ -168,10 +168,11 @@ using tink.CoreApi;
                     }
                 }
 
-                result.vars.push({v:_variable, t:type});
+                result.vars.push({v:_variable, t:ttype.get()});
 
                 if (empties.length > 0) {
                     _variable.expr = '${ctype.get().toString()}.${empties[0].name}'.resolve();
+                    _variable.type = ctype;
 
                 } else {
                     for (ctor in ctors) switch ctor.type {
@@ -201,11 +202,30 @@ using tink.CoreApi;
 
                             }
 
-                            result.fields.push(
-                                macro $i{_variable.name} = $e{
-                                    '${ctype.get().toString()}.${ctor.name}'.resolve().call(_args)
-                                }
-                            );
+                            var constant = true;
+                            for (_arg in _args) switch _arg {
+                                case {expr:EConst(CIdent(id)), pos:_}:
+                                    constant = false;
+                                    break;
+
+                                case _:
+
+                            }
+
+                            if (constant) {
+                                _variable.type = ctype;
+                                _variable.expr = '${ctype.get().toString()}.${ctor.name}'.resolve().call(_args);
+
+                            } else {
+                                result.fields.push(
+                                    macro $i{_variable.name} = $e{
+                                        '${ctype.get().toString()}.${ctor.name}'.resolve().call(_args)
+                                    }
+                                );
+
+
+                            }
+
                             break;
 
                         case x:
@@ -219,7 +239,7 @@ using tink.CoreApi;
 
             case TInst(_.get() => cls, _params):
                 var _variable = _var.get();
-                var tpath = type.getID().asTypePath();
+                var tpath = ttype.get().getID().asTypePath();
 
                 if (cls.constructor != null) {
                     var ctor = cls.constructor.get();
@@ -235,11 +255,12 @@ using tink.CoreApi;
 
                     }
 
+                    _variable.type = ctype;
                     _variable.expr = macro new $tpath($a{_args});
                     if (!ctor.isPublic) _variable.expr = macro @:privateAccess $e{_variable.expr};
                 }
 
-                result.vars.push({v:_variable, t:type});
+                result.vars.push({v:_variable, t:ttype});
 
             case TAbstract(_.get() => {name:Default}, _params):
                 var explosion = explode(_params[0], pos, params);
@@ -253,10 +274,12 @@ using tink.CoreApi;
                 result = result + explosion;
 
             case TAnonymous(_.get() => anon):
+                //ttype = ttype.map( t -> t.applyTypeParameters(anon.params, params) );
                 var _variable = _var.get();
                 var laterAssignments = [];
                 var typeFields:Array<Field> = [];
                 var objectFields:Array<ObjectField> = [];
+                //_variable.type = null;
                 
                 for (field in anon.fields) {
                     var fieldType = field.type;
@@ -318,15 +341,13 @@ using tink.CoreApi;
                 _variable.type = TAnonymous(typeFields);
                 _variable.expr = { expr:EObjectDecl(objectFields), pos:pos };
 
-                result.vars.push( {v:_variable, t:type} );
+                var pair = {v:_variable, t:ttype.get()};
+                result.vars.push( pair );
 
                 for (field in laterAssignments) {
                     var expr = macro null;
                     var fieldType = field.type;
-
-                    if (field.params.length > 0) {
-                        fieldType = fieldType.applyTypeParameters(field.params, params);
-                    }
+                    if (field.params.length > 0) fieldType = fieldType.applyTypeParameters(field.params, params);
 
                     for (v in stack.vars) if (v.v.type.toType().sure().unify(fieldType)) {
                         expr = macro $i{v.v.name};
@@ -350,8 +371,11 @@ using tink.CoreApi;
 
                 }
 
+                pair.t = pair.v.type.toType().sure();
+
             case TFun(args, ret):
                 var _variable = _var.get();
+                _variable.type = ctype;
                 result.vars.push( {v:_variable, t:type} );
                 var _args = args.map( a -> ({
                     name:a.name, 

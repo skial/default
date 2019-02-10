@@ -15,7 +15,7 @@ using tink.CoreApi;
 
 abstract Path(String) from String to String {}
 
-@:asserts class DefaultBasicSpec {
+@:nullSafety @:asserts class DefaultBasicSpec {
 
     public static inline var HELLO:String = 'hello';
     public static inline var N1000:Int = 1000;
@@ -36,6 +36,7 @@ abstract Path(String) from String to String {}
 
     #if !static
     public function testNullString() {
+        @:nullSafety(false)
         var a:Default<String> = null;
         var b:Default<String> = HELLO;
         asserts.assert(a == '');
@@ -58,6 +59,7 @@ abstract Path(String) from String to String {}
 
     #if !static
     public function testNullInt() {
+        @:nullSafety(false)
         var a:Default<Int> = null;
         var b:Default<Int> = N1000;
         asserts.assert(a == 0);
@@ -80,6 +82,7 @@ abstract Path(String) from String to String {}
 
     #if !static
     public function testNullFloat() {
+        @:nullSafety(false)
         var a:Default<Float> = null;
         var b:Default<Float> = F1000;
         
@@ -104,6 +107,7 @@ abstract Path(String) from String to String {}
 
     #if !static
     public function testNullObject() {
+        @:nullSafety(false)
         var a:Default<{}> = null;
         var b:Default<{a:String}> = {a:'1'};
 
@@ -146,7 +150,6 @@ abstract Path(String) from String to String {}
         return asserts;
     }
 
-    // TODO throws analyser xml
     public function testAbstract_simple() {
         var path:Default<Path> = NIL;
 
@@ -182,7 +185,6 @@ abstract Path(String) from String to String {}
     }
     #end
 
-    // Throws analyser xml
     public function testDynamicAccess() {
         var a:Default<haxe.DynamicAccess<String>> = NIL;
 

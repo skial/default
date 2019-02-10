@@ -44,7 +44,7 @@ To be used instead of `null`.
 
 #### Conditional Defines
 
-Add `-D default_debug` for further, useful, macro related errors to help debugging.
+Add `-debug` & `-D default_debug` for further, helpful, macro related statements to help debugging.
 Add `-D nightly` if working with a nightly build of the Haxe compiler.
 
 

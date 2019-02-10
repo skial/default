@@ -36,7 +36,7 @@ class B {
     }
 }
 
-@:asserts class DefaultClassSpec {
+@:nullSafety @:asserts class DefaultClassSpec {
 
     public function new() {}
 
@@ -68,6 +68,7 @@ class B {
 
     public function testDefaultCtor_Private() {
         var b:Default<B> = nil;
+        @:nullSafety(false) 
         asserts.assert(b != null);
         asserts.assert(b.i == 100);
         asserts.done();

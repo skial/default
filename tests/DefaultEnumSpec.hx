@@ -26,7 +26,7 @@ enum F {
     Ref(r:E);
 }
 
-@:asserts class DefaultEnumSpec {
+@:nullSafety @:asserts class DefaultEnumSpec {
 
     public function new() {}
 

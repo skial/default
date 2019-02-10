@@ -51,13 +51,15 @@ typedef J = {
     var a:I;
 }
 
-@:asserts class DefaultTypedefSpec {
+@:nullSafety @:asserts class DefaultTypedefSpec {
 
     public function new() {}
 
     public function testSingleField_object() {
         var foo:Default<{foo:Int}> = nil;
+        @:nullSafety(false)
         asserts.assert( foo != null );
+        @:nullSafety(false)
         #if !static asserts.assert( foo.foo != null ); #end
         asserts.assert( foo.foo == 0 );
         asserts.done();
@@ -67,7 +69,9 @@ typedef J = {
 
     public function testCircular_typedef() {
         var foo:Default<Ref> = nil;
+        @:nullSafety(false)
         asserts.assert( foo != null );
+        @:nullSafety(false)
         asserts.assert( foo.ref != null );
         asserts.done();
 
@@ -76,7 +80,9 @@ typedef J = {
 
     public function testCircularCall_typedef() {
         var foo:Default<RefFunc> = nil;
+        @:nullSafety(false)
         asserts.assert( foo != null );
+        @:nullSafety(false)
         asserts.assert( foo.ref() != null );
         asserts.done();
 
@@ -91,6 +97,7 @@ typedef J = {
         asserts.assert( .0 == c.c );
         asserts.assert( '' + [] == '' + c.d );
 
+        @:nullSafety(false)
         asserts.assert( c.e != null );
         asserts.assert( '' == c.e.a );
         asserts.assert( 0 == c.e.b );
@@ -151,9 +158,12 @@ typedef J = {
     public function testIssue17() {
         var f:Default<B_<Int>> = NIL;
 
+        @:nullSafety(false)
         asserts.assert( f != null );
+        @:nullSafety(false)
         asserts.assert( f.make(0) != null );
         asserts.assert( f.b() == 0 );
+        @:nullSafety(false)
         asserts.assert( f.make(10000).make(9) != null );
 
         asserts.done();

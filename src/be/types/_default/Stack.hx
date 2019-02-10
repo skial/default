@@ -6,6 +6,7 @@ import haxe.macro.Context;
 
 using tink.CoreApi;
 using tink.MacroApi;
+using haxe.macro.Context;
 
 typedef TStack = {
     // All variables defined. Stored with the original compiler type.
@@ -32,7 +33,10 @@ typedef TStack = {
 
         var stack = [variables].concat( this.fields );
 
-        if (this.vars.length > 0) stack.push( macro $i{this.vars[0].v.name} );
+        if (this.vars.length > 0) {
+            var ct = this.vars[0].t.toComplexType();
+            stack.push( macro ($i{this.vars[0].v.name}:$ct) );
+        }
 
         result = {
             expr:EBlock(stack),
