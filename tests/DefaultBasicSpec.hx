@@ -195,7 +195,7 @@ abstract Path(String) from String to String {}
         return asserts;
     }
 
-    #if !static
+    /*#if !static
     public function testTinkJsonRepresentation() {
         var s:Default<{foo:String, bar:Int}> = NIL;
         s.bar = 100;
@@ -211,6 +211,6 @@ abstract Path(String) from String to String {}
         asserts.done();
         return asserts;
     }
-    #end
+    #end*/
 
 }

@@ -6,7 +6,6 @@ import haxe.macro.Context;
 
 using tink.CoreApi;
 using tink.MacroApi;
-using haxe.macro.Context;
 
 typedef TStack = {
     // All variables defined. Stored with the original compiler type.
@@ -34,8 +33,9 @@ typedef TStack = {
         var stack = [variables].concat( this.fields );
 
         if (this.vars.length > 0) {
-            var ct = this.vars[0].t.toComplexType();
-            stack.push( macro ($i{this.vars[0].v.name}:$ct) );
+            var ct = Context.toComplexType(this.vars[0].t);
+            // See issue #20
+            stack.push( macro @:pos(pos) @:nullSafety(false) ($i{this.vars[0].v.name}:$ct) );
         }
 
         result = {

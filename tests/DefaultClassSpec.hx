@@ -1,9 +1,5 @@
 package ;
 
-#if thx_core
-import thx.Nil;
-#end
-
 import tink.unit.AssertionBuffer;
 
 import be.types.NIL;
@@ -16,24 +12,22 @@ using tink.CoreApi;
 class A {
 
     public var a:String;
-    public var b:Default<String> = NIL;
+    public var b:Default<String> = nil;
     public var c:Int;
     public var d:Int;
-    public var e:Default<Bool> = NIL;
+    public var e:Default<Bool> = nil;
 
     public function new(a:String, ?c:Int, ?d:Default<Int>) {
         this.a = a;
-        this.c = c;
+        this.c = c == null ? 10 : c;
         this.d = d;
     }
 
 }
 
-class B {
+@:nullSafety class B {
     public var i:Int = 100;
-    private inline function new() {
-
-    }
+    private inline function new() {}
 }
 
 @:nullSafety @:asserts class DefaultClassSpec {
@@ -68,8 +62,10 @@ class B {
 
     public function testDefaultCtor_Private() {
         var b:Default<B> = nil;
+        #if !static
         @:nullSafety(false) 
         asserts.assert(b != null);
+        #end
         asserts.assert(b.i == 100);
         asserts.done();
         return asserts;

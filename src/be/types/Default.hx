@@ -2,7 +2,7 @@ package be.types;
 
 import tink.json.Representation;
 
-#if macro
+#if (eval || macro)
 import haxe.macro.Type;
 import haxe.macro.Expr;
 import haxe.macro.Expr.QuoteStatus;
@@ -17,13 +17,13 @@ using haxe.macro.TypeTools;
 using Std;
 using tink.CoreApi;
 
-@:enum private abstract SConsts(String) from String to String {
+private enum abstract SConsts(String) from String to String {
     var Default = 'Default';
     var Def = 'def';
     var StructInit = ':structInit';
 }
 
-@:enum private abstract IConsts(Int) from Int to Int {
+private enum abstract IConsts(Int) from Int to Int {
     var DefSub = 3;
 }
 
@@ -39,14 +39,13 @@ using tink.CoreApi;
     public static #if !debug inline #end function of<T>(v:Null<T>, d:T):Unsafe<T> return new Unsafe<T>(v == null ? d : v);
 }
 
-// @see https://github.com/HaxeFoundation/haxe/issues/4756
-@:forward abstract Default<T>(T) {
+@:forward @:notNull abstract Default<T>(T) from T {
 
     public #if !debug inline #end function new(v) this = v;
 
     public #if !debug inline #end function get():T return this;
 
-    public static #if !debug inline #end function fromSafeValue<T>(v:T):Default<Safe<T>> return new Default<Safe<T>>(new Safe<T>(v));
+    public static #if !debug inline #end function fromSafeValue<T>(v:T):Default<T> return new Default<T>(v);
     public static #if !debug inline #end function of<T>(v:Null<T>, d:T):Default<T> return new Default<T>(v == null ? d : v);
 
     @:from public static #if !debug inline #end function fromUnsafeString(v:String):Default<String> return of(v, '');
@@ -55,15 +54,6 @@ using tink.CoreApi;
     @:from public static #if !debug inline #end function fromUnsafeBool(v:Bool):Default<Bool> return of(v, false);
     @:from public static #if !debug inline #end function fromUnsafeArray<T>(v:Array<T>):Default<Array<T>> return of(v, []);
     @:from public static #if !debug inline #end function fromUnsafeObject(v:{}):Default<{}> return of(v, {});
-
-    @:from public static macro function fromStruct(v:ExprOf<{}>):Expr {
-        var r = _typeToValue( v.typeof(), v.pos );
-        #if (debug && default_debug)
-        trace( v.toString(), v.typeof() );
-        trace( r.toString() );
-        #end
-        return macro @:pos(v.pos) be.types.Default.of( $v, $r );
-    }
 
     @:to public static #if !debug inline #end function asDefaultString(v:Safe<String>):Default<String> return new Default(v.get());
     @:to public static #if !debug inline #end function asDefaultInt(v:Safe<Int>):Default<Int> return new Default(v.get());
@@ -81,51 +71,42 @@ using tink.CoreApi;
     @:to public static #if !debug inline #end function asStringlyArray<T>(v:Array<T>):String return '' + #if !static (v == null ? [] : v) #else v #end;
     @:to public static #if !debug inline #end function asObject(v:{}):{} return #if !static (v == null ? {} : v) #else v #end;
 
-    #if !static
+    /*#if !static
     @:to public function toTinkRep():Representation<T> return new Representation(this);
     @:from public static function fromTinkRep<T>(v:Representation<T>):Default<T> return new Default(v.get());
-    #end
+    #end*/
 
     @:from public static macro function fromNIL<T>(v:ExprOf<be.types.NIL>):ExprOf<be.types.Default<T>> {
-        counter = 0;
-        var v = _typeToValue( Context.getExpectedType(), v.pos );
-        var ctype = Context.getExpectedType().toComplex();
-        #if (debug && default_debug)
-        trace( v.toString() );
-        #end
-        var result = macro @:pos(v.pos) be.types.Default.fromSafeValue($v);
-        #if (debug && default_debug)
-        trace( result.toString() );
-        #end
+        var value = _typeToValue( Context.getExpectedType(), v.pos );
+
+        var result = macro @:pos(v.pos) be.types.Default.fromSafeValue($e{value});
+        
+        if (isDebug) trace( result.toString() );
+
         return result;
     }
 
     #if thx_core 
     @:from public static macro function fromThxNil<T>(v:ExprOf<thx.Nil>):ExprOf<be.types.Default<T>> {
-        counter = 0;
-        var v = _typeToValue( Context.getExpectedType(), v.pos );
-        var ctype = Context.getExpectedType().toComplex();
-        #if (debug && default_debug)
-        trace( v.toString() );
-        #end
-        return macro @:pos(v.pos) be.types.Default.fromSafeValue($v);
+        var value = _typeToValue( Context.getExpectedType(), v.pos );
+        if (isDebug) trace( value.toString() );
+        
+        return macro @:pos(v.pos) be.types.Default.fromSafeValue($e{value});
     }
     #end
 
     #if tink_core 
     @:from public static macro function fromTinkNil<T>(v:ExprOf<tink.core.Noise>):ExprOf<be.types.Default<T>> {
-        counter = 0;
-        var v = _typeToValue( Context.getExpectedType(), v.pos );
-        var ctype = Context.getExpectedType().toComplex();
-        #if (debug && default_debug)
-        trace( v.toString() );
-        #end
-        return macro @:pos(v.pos) be.types.Default.fromSafeValue($v);
+        var value = _typeToValue( Context.getExpectedType(), v.pos );
+        if (isDebug) trace( value.toString() );
+        
+        return macro @:pos(v.pos) be.types.Default.fromSafeValue($e{value});
     }
     #end
 
-    #if (macro || eval)
-    private static var counter = 1;
+    #if (eval || macro)
+    private static var counter:Int = 1;
+    private static final isDebug = Context.defined('debug') && Context.defined('default_debug');
 
     private static function _typeToValue(type:Type, pos:Position):Expr {
         var result = switch basicType(type.reduce(), pos) {
@@ -138,9 +119,6 @@ using tink.CoreApi;
 
         }
         
-        #if (debug && default_debug)
-        trace( result.toString() );
-        #end
         return result;
     }
 
@@ -153,7 +131,7 @@ using tink.CoreApi;
 
         if (stack == null) stack = result;
         if (params == null) params = [];
-
+        
         switch type {
             case TEnum(_.get() => enm, params):
                 var empties = [];
@@ -229,9 +207,7 @@ using tink.CoreApi;
                             break;
 
                         case x:
-                            #if (debug && default_debug)
-                            trace( x );
-                            #end
+                            if (isDebug) trace( x );
 
                     }
 
@@ -248,9 +224,7 @@ using tink.CoreApi;
                             [for (arg in args) basicType(arg.t, pos)];
 
                         case x: 
-                            #if (debug && default_debug)
-                            trace( x );
-                            #end
+                            if (isDebug) trace( x );
                             [];
 
                     }
@@ -271,21 +245,19 @@ using tink.CoreApi;
                     ? def.type.applyTypeParameters(def.params, params.concat( _params ))
                     : def.type;
                 var explosion = explode(_type, pos, params.concat( _params ) );
+                if (explosion.vars[0].t.unify(ttype)) explosion.vars[0].t = ttype;
                 result = result + explosion;
 
             case TAnonymous(_.get() => anon):
-                //ttype = ttype.map( t -> t.applyTypeParameters(anon.params, params) );
                 var _variable = _var.get();
                 var laterAssignments = [];
                 var typeFields:Array<Field> = [];
                 var objectFields:Array<ObjectField> = [];
-                //_variable.type = null;
                 
                 for (field in anon.fields) {
                     var fieldType = field.type;
                     if (field.params.length > 0) fieldType = fieldType.applyTypeParameters(field.params, params);
                     
-                    var cftype = fieldType.toComplexType();
                     var expr = basicType(fieldType, field.pos);
                     
                     if (expr.isNullExpr()) laterAssignments.push( field );
@@ -302,7 +274,9 @@ using tink.CoreApi;
                             case _: 'default';
                         }
                     }
-                    var kind = switch [field.kind, fieldType] {
+                    var ct = fieldType.toComplex();
+                    var ft = expr.isNullExpr() && !fieldType.match(TFun(_, _)) ? (macro:Null<$ct>).toType().sure() : fieldType;
+                    var kind = switch [field.kind, ft] {
                         case [FVar(read, write), ret]:
                             FProp(
                                 varAccess(read, true), 
@@ -322,11 +296,12 @@ using tink.CoreApi;
                             });
 
                         case [a, b]:
-                            #if (debug && default_debug)
-                            trace( a );
-                            trace( b );
-                            #end
-                            throw 'Unsupported `Field` kind. Use `-D default_debug` with `-debug` for more information.';
+                            if (isDebug) {
+                                trace( a );
+                                trace( b );
+
+                            }
+                            throw 'Unsupported Field::kind. Use `-D default_debug` with `-debug` for more information.';
                             null;
 
                     }
@@ -340,7 +315,7 @@ using tink.CoreApi;
 
                 _variable.type = TAnonymous(typeFields);
                 _variable.expr = { expr:EObjectDecl(objectFields), pos:pos };
-
+                
                 var pair = {v:_variable, t:ttype.get()};
                 result.vars.push( pair );
 
@@ -348,30 +323,32 @@ using tink.CoreApi;
                     var expr = macro null;
                     var fieldType = field.type;
                     if (field.params.length > 0) fieldType = fieldType.applyTypeParameters(field.params, params);
-
-                    for (v in stack.vars) if (v.v.type.toType().sure().unify(fieldType)) {
+                    
+                    for (v in stack.vars) if (v.t.unify(fieldType) || v.v.type.toType().sure().unify(fieldType)) {
                         expr = macro $i{v.v.name};
-                        result.fields.push( macro $p{[id, field.name]} = $i{v.v.name} );
+                        result.fields.push( macro @:pos(field.pos) $p{[id, field.name]} = $i{v.v.name} );
                         break;
                     }
-
                     // Run again in case of more complex types.
                     if (expr.isNullExpr()) {
                         var explosion = explode(fieldType, pos, params, result);
                         
-                        for (v in explosion.vars) if (v.v.type.toType().sure().unify(fieldType)) {
+                        for (v in explosion.vars) if (v.t.unify(fieldType) || v.v.type.toType().sure().unify(fieldType)) {
                             result.fields.push( macro $p{[id, field.name]} = $i{v.v.name} );
                             break;
                             
                         }
-
+                        
                         result = result + explosion;
 
                     }
 
                 }
+                
+                
+                var tt = pair.v.type.toType().sure();
+                if (!pair.t.unify(tt)) pair.t = tt;
 
-                pair.t = pair.v.type.toType().sure();
 
             case TFun(args, ret):
                 var _variable = _var.get();
@@ -412,9 +389,7 @@ using tink.CoreApi;
                 }
 
             case x:
-                #if (debug && default_debug)
-                trace( x );
-                #end
+                if (isDebug) trace( x );
 
         }
         
@@ -432,7 +407,8 @@ using tink.CoreApi;
                 switch cls.name {
                     case 'Array': result = macro @:pos(pos) [];
                     case 'String': result = macro @:pos(pos) be.types.Defaults.string;
-                    case x: trace( x );
+                    case x: 
+                        if (isDebug) trace( x );
                 }
 
             case TAbstract(_.get() => abs, _params) if(abs.meta.has(':coreType') || abs.meta.has(':coreApi')):
@@ -442,9 +418,8 @@ using tink.CoreApi;
                     case 'Bool': result = macro @:pos(pos) be.types.Defaults.bool;
                     case 'Null': result = basicType(_params[0], pos);
                     case x: 
-                        #if (debug && default_debug)
-                        trace( x );
-                        #end
+                        if (isDebug) trace( x );
+                    
                 }
 
             case TType(_.get() => def, _params) if (def.name == 'Null'):
@@ -460,9 +435,7 @@ using tink.CoreApi;
                 result = basicType(abs.type, pos);
 
             case x:
-                #if (debug && default_debug)
-                trace( x );
-                #end
+                if (isDebug) trace( x );
 
         }
 
@@ -471,6 +444,17 @@ using tink.CoreApi;
 
     public static inline function isNullExpr(v:Expr):Bool return switch v {
         case macro null: true;
+        case _: false;
+    }
+
+    public static inline function unwrap(type:Type):Type {
+        return switch type {
+            case TAbstract(_.get() => {name:Default}, p): p[0];
+            case _: type;
+        }
+    }
+    public static inline function isDefault(type:Type):Bool return switch type {
+        case TAbstract(_.get() => {name:Default}, _): true;
         case _: false;
     }
     #end

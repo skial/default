@@ -26,9 +26,7 @@
 -lib hxnodejs
 
 -js bin/default.js
-#
-#--next
-#
-##-D dump
-## See issue #15
-#-hl bin/default.hl
+
+--next
+
+-hl bin/default.hl

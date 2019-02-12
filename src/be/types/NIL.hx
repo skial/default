@@ -1,6 +1,6 @@
 package be.types;
 
-enum NIL {
-    nil;
-    NIL;
+enum abstract NIL(Int) {
+    public var nil;
+    public var NIL;
 }
