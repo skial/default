@@ -446,17 +446,6 @@ private enum abstract IConsts(Int) from Int to Int {
         case macro null: true;
         case _: false;
     }
-
-    public static inline function unwrap(type:Type):Type {
-        return switch type {
-            case TAbstract(_.get() => {name:Default}, p): p[0];
-            case _: type;
-        }
-    }
-    public static inline function isDefault(type:Type):Bool return switch type {
-        case TAbstract(_.get() => {name:Default}, _): true;
-        case _: false;
-    }
     #end
 
 }
