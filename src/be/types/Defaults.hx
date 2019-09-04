@@ -8,6 +8,6 @@ class Defaults {
     public static final bool:Bool = false;
     //public static final array:Array<Any> = [];
     //public static final nullable:Null<Any> = null;
-    public static inline final function passthrough<T>(v:T):T return v;
+    public static inline function passthrough<T>(v:T):T return v;
 
 }

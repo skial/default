@@ -63,7 +63,7 @@ class A {
     public function testDefaultCtor_Private() {
         var b:Default<B> = nil;
         #if !static
-        @:nullSafety(false) 
+        @:nullSafety(Off) 
         asserts.assert(b != null);
         #end
         asserts.assert(b.i == 100);

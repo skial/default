@@ -36,7 +36,7 @@ abstract Path(String) from String to String {}
 
     #if !static
     public function testNullString() {
-        @:nullSafety(false)
+        @:nullSafety(Off)
         var a:Default<String> = null;
         var b:Default<String> = HELLO;
         asserts.assert(a == '');
@@ -59,7 +59,7 @@ abstract Path(String) from String to String {}
 
     #if !static
     public function testNullInt() {
-        @:nullSafety(false)
+        @:nullSafety(Off)
         var a:Default<Int> = null;
         var b:Default<Int> = N1000;
         asserts.assert(a == 0);
@@ -82,7 +82,7 @@ abstract Path(String) from String to String {}
 
     #if !static
     public function testNullFloat() {
-        @:nullSafety(false)
+        @:nullSafety(Off)
         var a:Default<Float> = null;
         var b:Default<Float> = F1000;
         
@@ -107,7 +107,7 @@ abstract Path(String) from String to String {}
 
     #if !static
     public function testNullObject() {
-        @:nullSafety(false)
+        @:nullSafety(Off)
         var a:Default<{}> = null;
         var b:Default<{a:String}> = {a:'1'};
 

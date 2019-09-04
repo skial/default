@@ -47,16 +47,16 @@ typedef J = {
     var a:I;
 }
 
-@:nullSafety @:asserts class DefaultTypedefSpec {
+/*@:nullSafety*/ @:asserts class DefaultTypedefSpec {
 
     public function new() {}
 
     public function testSingleField_object() {
         var foo:Default<{foo:Int}> = nil;
         #if !static
-        @:nullSafety(false)
+        @:nullSafety(Off)
         asserts.assert( foo != null );
-        @:nullSafety(false)
+        @:nullSafety(Off)
         asserts.assert( foo.foo != null );
         #end
         asserts.assert( foo.foo == 0 );
@@ -68,9 +68,9 @@ typedef J = {
     public function testCircular_typedef() {
         var foo:Default<Ref> = nil;
         #if !static
-        @:nullSafety(false)
+        @:nullSafety(Off)
         asserts.assert( foo != null );
-        @:nullSafety(false)
+        @:nullSafety(Off)
         asserts.assert( foo.ref != null );
         #end
         asserts.assert( foo.ref.ref == foo.ref.ref.ref.ref );
@@ -81,9 +81,9 @@ typedef J = {
     #if !static
     public function testCircularCall_typedef() {
         var foo:Default<RefFunc> = nil;
-        @:nullSafety(false)
+        @:nullSafety(Off)
         asserts.assert( foo != null );
-        @:nullSafety(false)
+        @:nullSafety(Off)
         asserts.assert( foo.ref() != null );
         asserts.done();
         return asserts;
@@ -99,7 +99,7 @@ typedef J = {
         asserts.assert( '' + [] == '' + c.d );
 
         #if !static
-        @:nullSafety(false)
+        @:nullSafety(Off)
         asserts.assert( c.e != null );
         #end
         asserts.assert( '' == c.e.a );
@@ -158,14 +158,14 @@ typedef J = {
     }
 
     public function testIssue17() {
-        var f:Default<B_<Int>> = NIL;
+        var f:Default<B_<Int>> = nil;
 
         #if !static
-        @:nullSafety(false)
+        @:nullSafety(Off)
         asserts.assert( f != null );
-        @:nullSafety(false)
+        @:nullSafety(Off)
         asserts.assert( f.make(0) != null );
-        @:nullSafety(false)
+        @:nullSafety(Off)
         asserts.assert( f.make(10000).make(9) != null );
         #end
         asserts.assert( f.b() == 0 );
