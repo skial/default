@@ -1,5 +1,10 @@
 {
     "haxe.displayConfigurations": [
         ["build.hxml"]
-    ]
+    ],
+    "workbench.colorCustomizations": {
+        "activityBar.background": "#390E7E",
+        "titleBar.activeBackground": "#5013B1",
+        "titleBar.activeForeground": "#FCFBFF"
+    }
 }

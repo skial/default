@@ -13,7 +13,8 @@
         "tink_core": "",
         "tink_macro": "",
         "tink_json": "",
-        "utest": ""
+        "haxe.macro.Metas": "git:https://github.com/skial/haxe.macro.Metas#78f17585218cdec22797e061225c970f28782a51",
+        "haxe.macro.Defines": "git:https://github.com/skial/haxe.macro.Defines#14933a2b77504bd800bdcd90a610a17c15252af8"
     }
   }
   

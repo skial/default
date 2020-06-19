@@ -4,8 +4,6 @@ package ;
 import thx.Nil;
 #end
 
-import tink.unit.AssertionBuffer;
-
 import be.types.NIL;
 import be.types.Default;
 
@@ -15,7 +13,9 @@ using tink.CoreApi;
 
 abstract Path(String) from String to String {}
 
-@:nullSafety @:asserts class DefaultBasicSpec {
+@:asserts
+@:nullSafety
+class DefaultBasicSpec {
 
     public static inline var HELLO:String = 'hello';
     public static inline var N1000:Int = 1000;

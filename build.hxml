@@ -3,14 +3,16 @@
 -lib tink_macro
 -lib tink_json
 -lib tink_unittest
+-lib haxe.macro.Metas
+-lib haxe.macro.Defines
 
 -cp src
 -cp tests
 
-#-debug
+-debug
 -dce full
 
--D default_debug
+-D default-debug
 -D analyzer-optimize
 -D eval-stack
 -D nightly
@@ -19,14 +21,13 @@
 
 --each
 
--neko bin/default.n
-
---next
+#-neko bin/default.n
+#
+#--next
 
 -lib hxnodejs
-
 -js bin/default.js
 
---next
-
--hl bin/default.hl
+#--next
+#
+#-hl bin/default.hl

@@ -157,7 +157,7 @@ typedef J = {
         return asserts;
     }
 
-    public function testIssue17() {
+    /*public function testIssue17() {
         var f:Default<B_<Int>> = nil;
 
         #if !static
@@ -172,6 +172,6 @@ typedef J = {
 
         asserts.done();
         return asserts;
-    }
+    }*/
 
 }
