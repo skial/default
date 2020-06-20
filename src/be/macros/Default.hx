@@ -93,17 +93,81 @@ class Default {
                 stack = explode(p[0], pos, params, stack);
 
             case TAbstract(_.get() => abs, p):
+                var recursion:Null<Type> = null;
+
+                // Attempt to use the implementations static `_new`.
                 if (abs.impl != null) {
-                    var _type =  TInst(abs.impl, p);
-                    stack = explode(_type, pos, p, stack);
-                    var index = stack.typeIndex( _type );
-                    if (index > -1) {
-                        stack.vars[index].t = type;
-                        stack.vars[index].v.type = ctype;
+                    var inst = TInst(abs.impl, p);
+                    recursion = detectCircularRef(inst, [type]);
+
+                    if (recursion == null) {
+                        trace( inst );
+                        stack = explode( inst, pos, params, stack );
+                        var index = stack.typeIndex( inst );
+
+                        if (index > -1) {
+                            stack.vars[index].t = type;
+                            stack.vars[index].v.type = ctype;
+
+                            if (!stack.vars[index].v.expr.isNullExpr()) {
+                                return stack;
+
+                            } else {
+                                // Abandon previous variable, try again with `from`.
+                                stack.vars.splice(index, 1);
+
+                            }
+                        }
+
                     }
 
+                }
+
+                // Attempt to create a type from a compatible `from $type` expression.
+                if (abs.from.length > 0) {
+                    for (field in abs.from) {
+                        // Run `detectCircularRef` for each `from` type, 
+                        // preloaded with original abs `type`.
+                        recursion = detectCircularRef(field.t, [type]);
+
+                        trace( field, recursion );
+
+                        if (recursion == null) {
+                            var expr:Expr = basicType( field.t, pos );
+
+                            if (expr.isNullExpr()) {
+                                stack = explode( field.t, pos, params, stack );
+                                var index = stack.typeIndex( field.t );
+
+                                if (index > -1) {
+                                    stack.vars[index].t = type;
+                                    stack.vars[index].v.type = ctype;
+
+                                    return stack;
+                                }
+
+                            } else {
+                                var absVar = type.makeVariable(pos);
+                                absVar.expr = expr;
+                                stack.addVariable(absVar, type);
+
+                                return stack;
+                            }
+
+                        }
+
+                    }
+
+                }
+
+                // Attempt to build its raw type and casting to type.
+                
+                
+                if (recursion != null) {
+                    Context.fatalError( 'A potential recursion was detected in type ${type.toString()}. This is not supported by Default.', pos );
+
                 } else {
-                    Context.fatalError( 'No implementation detected. ERROR::FIX.', pos );
+                    Context.fatalError( 'No implementation constructed. UNKNOWN::ERROR::FIX. 🔥', pos );
 
                 }
 
@@ -200,6 +264,8 @@ class Default {
                 var clsVar = type.makeVariable(pos);
                 var recursion:Null<Type> = null;
                 var strClsParams:Array<String> = [];
+                var creator:Null<ClassField> = null;
+                var makeExpr:Null<Array<Expr>->Expr> = null;
 
                 switch cls.kind {
                     case KNormal:
@@ -215,11 +281,14 @@ class Default {
                         
                         for (field in cls.statics.get()) if (field.name == '_new') {
                             field.type = field.type.reduce().applyTypeParameters( abs.params, p );
-                            args = handleFunctionCall(field, pos, stack, p, abs.params, strClsParams);
+                            //args = handleFunctionCall(field, pos, stack, p, abs.params, strClsParams);
+                            creator = field;
                             break;
                         }
 
-                        clsVar.expr = macro @:pos(pos) new $typePath($a{args});
+                        //clsVar.expr = macro @:pos(pos) new $typePath($a{args});
+
+                        makeExpr = args -> macro @:pos(pos) new $typePath($a{args});
 
                     case x:
                         if (isDebug) trace( x );
@@ -231,11 +300,19 @@ class Default {
                     if (cls.constructor != null) {
                         var ctor = cls.constructor.get();
                         var tpath:TypePath = { pack:cls.pack, name:cls.name };
-                        var args = handleFunctionCall( ctor, pos, stack, p, cls.params, strClsParams );
+                        creator = ctor;
+                        //var args = handleFunctionCall( ctor, pos, stack, p, cls.params, strClsParams );
 
-                        clsVar.expr = macro new $tpath($a{args});
+                        /*clsVar.expr = macro new $tpath($a{args});
                         if (!ctor.isPublic) clsVar.expr = macro @:privateAccess $e{clsVar.expr};
-                        clsVar.expr = macro @:pos(pos) $e{clsVar.expr};
+                        clsVar.expr = macro @:pos(pos) $e{clsVar.expr};*/
+                        makeExpr = args -> macro @:pos(pos) new $tpath($a{args});
+
+                    }
+
+                    if (creator != null && makeExpr != null) {
+                        var args = handleFunctionCall( creator, pos, stack, p, cls.params, strClsParams );
+                        clsVar.expr = makeExpr( args );
 
                     }
 
@@ -489,11 +566,21 @@ class Default {
             case TDynamic(n) if (n != null):
                 result = macro @:pos(pos) {};
 
-            case TAbstract(_.get() => abs, _params) if (abs.from.length > 0 && abs.from.map( f -> !basicType(f.t, pos).isNullExpr() ).length > 0):
-                result = basicType(abs.type, pos);
+            case TAbstract(_.get() => abs, _params) if (abs.from.length > 0):
+                for (field in abs.from) {
+                    result = basicType(field.t, pos);
+                    if (!result.isNullExpr()) {
+                        // TODO
+                        // the cast prevents the compiler from stating `nil` should 
+                        // be `abstract type` even tho the correct type/expr is returned.
+                        result = macro cast $result;
+                        break;
+                    }
+
+                }
 
             case x:
-                //if (isDebug) trace( x );
+                if (isDebug) trace( x );
 
         }
 
@@ -564,11 +651,11 @@ class Default {
         return stack;
     }
 
-    public static function detectCircularRef(type:Type):Null<Type> {
+    public static function detectCircularRef(type:Type, ?types:Array<Type>):Null<Type> {
         var result:Null<Type> = null;
         var list:Array<Type> = [];
-        var types:Array<Type> = [];
-        var stypes:Array<String> = [];
+        var types:Array<Type> = types == null ? [] : types;
+        var stypes:Array<String> = types.map( t -> t.toString() );
         var current = type;
 
         while (current != null) {
@@ -581,8 +668,22 @@ class Default {
                         isCore = true;
                     }
 
-                    if (!isCore && cls.constructor != null) {
-                        list.push( cls.constructor.get().type.reduce() );
+                    switch cls.kind {
+                        case KNormal:
+                            if (!isCore && cls.constructor != null) {
+                                list.push( cls.constructor.get().type.reduce() );
+
+                            }
+
+                        case KAbstractImpl(ref):
+                            for (field in cls.statics.get()) if (field.name == '_new') {
+                                list.push( field.type.reduce() );
+                                break;
+
+                            }
+
+                        case x:
+                            if (isDebug) trace( x );
 
                     }
 
@@ -591,7 +692,16 @@ class Default {
                         isCore = true;
                     }
 
-                    if (!isCore) list.push( abs.type );
+                    if (!isCore) {
+                        if (abs.impl != null) {
+                            list.push( TInst(abs.impl, params) );
+
+                        } else {
+                            list.push( abs.type );
+
+                        }
+
+                    }
 
                 case TFun(args, _):
                     isFunc = true;
