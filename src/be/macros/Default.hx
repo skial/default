@@ -161,6 +161,28 @@ class Default {
                 }
 
                 // Attempt to build its raw type and casting to type.
+                recursion = detectCircularRef(abs.type, [type]);
+                if (recursion == null) {
+                    trace( abs.type );
+                    stack = explode( abs.type, pos, params, stack );
+                    var index = stack.typeIndex( abs.type );
+
+                    if (index > -1) {
+                        stack.vars[index].t = type;
+                        stack.vars[index].v.type = ctype;
+
+                        if (!stack.vars[index].v.expr.isNullExpr()) {
+                            stack.vars[index].v.expr = macro cast $e{stack.vars[index].v.expr};
+                            return stack;
+
+                        } else {
+                            // Abandon previous variable. No more attempts.
+                            stack.vars.splice(index, 1);
+
+                        }
+                    }
+
+                }
                 
                 
                 if (recursion != null) {
@@ -277,16 +299,12 @@ class Default {
                         var typePath:TypePath = {
                             pack: abs.pack, name: abs.name,
                         };
-                        var args = [];
                         
                         for (field in cls.statics.get()) if (field.name == '_new') {
                             field.type = field.type.reduce().applyTypeParameters( abs.params, p );
-                            //args = handleFunctionCall(field, pos, stack, p, abs.params, strClsParams);
                             creator = field;
                             break;
                         }
-
-                        //clsVar.expr = macro @:pos(pos) new $typePath($a{args});
 
                         makeExpr = args -> macro @:pos(pos) new $typePath($a{args});
 
@@ -298,14 +316,9 @@ class Default {
                 if (recursion == null) {
                     // Assume it is safe to build the class.
                     if (cls.constructor != null) {
-                        var ctor = cls.constructor.get();
+                        creator = cls.constructor.get();
+                        creator.type = creator.type.applyTypeParameters( cls.params, p );
                         var tpath:TypePath = { pack:cls.pack, name:cls.name };
-                        creator = ctor;
-                        //var args = handleFunctionCall( ctor, pos, stack, p, cls.params, strClsParams );
-
-                        /*clsVar.expr = macro new $tpath($a{args});
-                        if (!ctor.isPublic) clsVar.expr = macro @:privateAccess $e{clsVar.expr};
-                        clsVar.expr = macro @:pos(pos) $e{clsVar.expr};*/
                         makeExpr = args -> macro @:pos(pos) new $tpath($a{args});
 
                     }
@@ -390,12 +403,6 @@ class Default {
 
                 if (recursion == null) {
                     for (field in anon.fields) if (!field.meta.has(Metas.Optional)) {
-                        /*var stringly = arg.t.toString();
-                        // If the param matches a enum type parameter, attempt to convert into concrete type.
-                        for (param in strEnmParams) if (param == stringly) {
-                            field.type = field.type.applyTypeParameters( enm.params, p );
-                        }*/
-
                         var expr:Expr = basicType(field.type, field.pos);
 
                         if (expr.isNullExpr()) {
@@ -483,38 +490,64 @@ class Default {
 
             case TFun(args, ret):
                 var _variable = type.makeVariable(pos);
-                stack.vars.push( {v:_variable, t:type} );
+                stack.addVariable( _variable, type );
 
-                var _args = args.map( a -> ({
-                    name:a.name, 
-                    opt:a.opt, 
-                    type:a.t.toComplex(),
-                }:FunctionArg) );
+                var count = 0;
+                var _args:Array<FunctionArg> = [];
 
-                var _ret = basicType(ret, pos);
-                
-                // TODO use isNullExpr
-                switch _ret {
-                    case macro null:
+                for (arg in args) {
+                    var _name = arg.name;
+                    
+                    if (_name == '') {
+                        _name = genAscii(count++);
+                    }
+                    
+                    _args.push( {
+                        name: _name, 
+                        opt: arg.opt, 
+                        type: arg.t.toComplexType(),
+                    } );
+
+                }
+
+                // The default expression is Void.
+                var _expr = macro {};
+
+                // Attempting to use `unify` causes `Variables of type Void are not allowed` to be thrown.
+                if (ret.toString() != 'Void') {
+                    var _ret:Expr = null;
+
+                    // Prefer to return an argument instead of a default value, if possible.
+                    for (arg in _args) if (arg.type.toType().sure().unify(ret)) {
+                        _ret = macro $i{arg.name};
+                        break;
+                    }
+                    
+                    // If not, just return a default value.
+                    if (_ret == null) _ret = basicType(ret, pos);
+                    
+                    // Assume its a complex type.
+                    if (_ret.isNullExpr()) {
                         for (pair in stack.vars) {
                             if (pair.t.unify(ret) || pair.v.type.toType().sure().unify(ret)) {
                                 _ret = macro cast $i{pair.v.name};
                                 break;
-
+    
                             }
-
+    
                         }
 
-                    case _:
+                    }
 
+                    _expr = macro return $_ret;
 
                 }
-
+                
                 _variable.expr = {
-                    expr:EFunction(null, {
+                    expr:EFunction(FAnonymous, {
                         args: _args,
                         ret: ret.toComplex(),
-                        expr: macro return $_ret,
+                        expr: _expr,
                         params: [],
                     }), 
                     pos:pos 
@@ -529,6 +562,29 @@ class Default {
         }
         
         return stack;
+    }
+
+    // A...Z and a...z
+    private static final codepoints:Array<Int> = [for (i in 'A'.code...'['.code) i].concat( [for (i in 'a'.code...'{'.code) i] );
+    private static function genAscii(index:Int):String {
+        if (index < 0) index = -index;
+        var result = '';
+        var max = codepoints.length-1;
+
+        if (index > max) {
+            while (index > max) {
+                result += genAscii(index - max - result.length);
+                index -= max;
+
+            }
+
+            index--;
+
+        }
+        
+        result += String.fromCharCode( codepoints[index] );
+
+        return result;
     }
 
     private static function basicType(type:Type, pos:Position):Expr {
@@ -663,7 +719,7 @@ class Default {
             var isFunc:Bool = false;
 
             switch current {
-                case TInst(_.get() => cls, _):
+                case TInst(_.get() => cls, p):
                     if (cls.meta.has(Metas.CoreApi) || cls.meta.has(Metas.CoreType)) {
                         isCore = true;
                     }
@@ -671,7 +727,9 @@ class Default {
                     switch cls.kind {
                         case KNormal:
                             if (!isCore && cls.constructor != null) {
-                                list.push( cls.constructor.get().type.reduce() );
+                                var ctor = cls.constructor.get();
+                                ctor.type = ctor.type.applyTypeParameters( cls.params, p );
+                                list.push( ctor.type.reduce() );
 
                             }
 

@@ -22,7 +22,9 @@ using tink.CoreApi;
     public static #if !debug inline #end function of<T>(v:Null<T>, d:T):Unsafe<T> return new Unsafe<T>(v == null ? d : v);
 }
 
-@:forward @:notNull abstract Default<T>(T) from T {
+@:forward
+@:notNull
+abstract Default<T>(T) from T {
 
     public #if !debug inline #end function new(v) this = v;
 

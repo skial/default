@@ -24,6 +24,19 @@ class NestedDef {
         return asserts.done();
     }
 
+    public function testFromModule() {
+        var a:Default<TFoo.TBar> = nil;
+
+        asserts.assert( a != null );
+        asserts.assert( a.twins != null );
+        asserts.assert( a.twins.a != null );
+        asserts.assert( a.twins.a == '' );
+        asserts.assert( a.twins.b != null );
+        asserts.assert( a.twins.b == '' );
+
+        return asserts.done();
+    }
+
 }
 
 private typedef Def = {

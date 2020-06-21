@@ -17,6 +17,15 @@ class RedefinedType {
         return asserts.done();
     }
 
+    public function testFromModule() {
+        var a:Default<TFoo> = nil;
+
+        asserts.assert( a != null );
+        asserts.assert( a == '' );
+
+        return asserts.done();
+    }
+
 }
 
 private typedef Str = String;
