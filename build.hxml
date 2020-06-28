@@ -15,7 +15,13 @@
 -D default-debug
 -D analyzer-optimize
 -D eval-stack
--D nightly
+#-D eval-times
+#-D nightly
+#-D no-macro-cache
+#-D no-copt
+#-D no-compilation
+#-D macro-times 
+#-D dce-debug 
 
 -main Main
 

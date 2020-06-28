@@ -52,7 +52,8 @@ class A {
 
         asserts.assert( '' == a.a );
         asserts.assert( '' == a.b );
-        asserts.assert( 0 == a.c );
+        // As `c` is optional, its not filled in by Default.
+        asserts.assert( 10 == a.c );
         asserts.assert( 0 == a.d );
         asserts.assert( false == a.e );
 

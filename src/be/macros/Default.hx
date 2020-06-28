@@ -38,7 +38,7 @@ private enum abstract LocalDefines(Defines) {
 
 class Default {
 
-    private static var counter:Int = 1;
+    private static var counter:Int = 0;
     private static final isDebug = Debug && DefaultVerbose;
 
     public static function typeToValue(type:Type, pos:Position, ?stack:Null<Stack>):Expr {
@@ -54,7 +54,24 @@ class Default {
                     explosion.snapshot(type, pos);
 
                 } else {
-                    macro @:pos(pos) $i{explosion.typeVariable(type).name};
+                    //macro @:pos(pos) $i{explosion.typeVariable(type).name};
+                    switch explosion.exprDef(type) {
+                        case EVars(vars):
+                            var expr = macro @:pos(pos) $i{vars[0].name};
+                            /*for (v in vars) if (v.type.toType().sure().unify(type)) {
+                                expr = macro @:pos(pos) $i{v.name};
+
+                            }*/
+                            
+                            expr;
+
+                        case EFunction(FNamed(name), _):
+                            macro @:pos(pos) $i{name};
+
+                        case x:
+                            Context.fatalError('Unexpected expression returned.', pos);
+
+                    }
                     
                 }
 
@@ -72,8 +89,25 @@ class Default {
     }
 
     public static function makeVariable(type:Type, pos:Position):Var {
-        var ctype = type.toComplexType();
-        return { name:'$Def${counter++}', type:ctype, isFinal:false, expr:macro @:pos(pos) null };
+        var ctype:Null<ComplexType> = switch type {
+            case TAnonymous(_): 
+                null;
+
+            case TFun(args, _):
+                if (args.filter( a -> a.t.match( TInst(_.get() => {kind:KTypeParameter(_)}, _) ) ).length > 0) {
+                    null;
+
+                } else {
+                    type.toComplexType();
+
+                }
+
+            case _:
+                type.toComplexType();
+
+        }
+        
+        return { name:'$Def${counter++}', type:ctype, isFinal:false, expr:macro null };
     }
 
     public static function explode(type:Type, pos:Position, ?params:Array<Type>, ?stack:Stack):Stack {
@@ -92,18 +126,19 @@ class Default {
             case TAbstract(_.get() => {name:Default}, p):
                 stack = explode(p[0], pos, params, stack);
 
-            case TAbstract(_.get() => abs, p):
+            case TAbstract(_.get() => abs, p) if (!abs.meta.has(Metas.CoreApi) || abs.meta.has(Metas.CoreType)):
                 var recursion:Null<Type> = null;
 
                 // Attempt to use the implementations static `_new`.
                 if (abs.impl != null) {
                     var inst = TInst(abs.impl, p);
+                    trace( inst );
                     recursion = detectCircularRef(inst, [type]);
 
                     if (recursion == null) {
                         trace( inst );
                         stack = explode( inst, pos, params, stack );
-                        var index = stack.typeIndex( inst );
+                        /*var index = stack.typeIndex( inst );
 
                         if (index > -1) {
                             stack.vars[index].t = type;
@@ -117,6 +152,28 @@ class Default {
                                 stack.vars.splice(index, 1);
 
                             }
+                        }*/
+                        var index = stack.typeIndex( inst );
+                        var exprdef = stack.exprs[index];
+                        if (exprdef != null) {
+                            stack.exprTypes[index] = type;
+                            switch exprdef {
+                                case EVars(vars):
+                                    vars[0].type = ctype;
+                                    
+                                    if (!vars[0].expr.isNullExpr()) {
+                                        trace( vars[0] );
+                                        return stack;
+
+                                    } else {
+                                        stack.exprs.pop();
+
+                                    }
+
+                                case _:
+
+                            }
+
                         }
 
                     }
@@ -137,11 +194,23 @@ class Default {
 
                             if (expr.isNullExpr()) {
                                 stack = explode( field.t, pos, params, stack );
-                                var index = stack.typeIndex( field.t );
+                                /*var index = stack.typeIndex( field.t );
 
                                 if (index > -1) {
                                     stack.vars[index].t = type;
                                     stack.vars[index].v.type = ctype;
+
+                                    return stack;
+                                }*/
+                                var exprdef = stack.exprDef( field.t );
+                                if (exprdef != null) {
+                                    switch exprdef {
+                                        case EVars(vars):
+                                            vars[0].type = ctype;
+
+                                        case _:
+
+                                    }
 
                                     return stack;
                                 }
@@ -163,9 +232,8 @@ class Default {
                 // Attempt to build its raw type and casting to type.
                 recursion = detectCircularRef(abs.type, [type]);
                 if (recursion == null) {
-                    trace( abs.type );
                     stack = explode( abs.type, pos, params, stack );
-                    var index = stack.typeIndex( abs.type );
+                    /*var index = stack.typeIndex( abs.type );
 
                     if (index > -1) {
                         stack.vars[index].t = type;
@@ -180,6 +248,22 @@ class Default {
                             stack.vars.splice(index, 1);
 
                         }
+                    }*/
+                    var index = stack.typeIndex( abs.type );
+                    var exprdef = stack.exprs[index];
+                    if (exprdef != null) stack.exprTypes[index] = type;
+                    switch exprdef {
+                        case EVars(vars):
+                            if (!vars[0].expr.isNullExpr()) {
+                                vars[0].type = ctype;
+                                vars[0].expr = macro cast $e{vars[0].expr};
+                                return stack;
+
+                            }
+
+                        case _:
+                            stack.exprs.pop();
+
                     }
 
                 }
@@ -208,15 +292,10 @@ class Default {
                     }
                 }
 
-                if (isDebug) {
-                    trace( 'var ${_variable.name}:${_variable.type.toString()} = ${_variable.expr.toString()}' );
-
-                }
-
                 stack.addVariable(_variable, type);
 
                 if (empties.length > 0) {
-                    _variable.expr = macro $p{[ctype.toString(), empties[0].name]};
+                    _variable.expr = macro $p{[enm.name, empties[0].name]};
 
                 } else {
                     for (ctor in ctors) switch ctor.type {
@@ -233,18 +312,31 @@ class Default {
                                     arg.t = arg.t.applyTypeParameters( enm.params, p );
                                 }
 
-                                for (pair in stack.vars) if (pair.t.unify(arg.t)) {
+                                /*for (pair in stack.vars) if (pair.t.unify(arg.t)) {
                                     var name = pair.v.name;
                                     expr = macro $i{name};
                                     break;
 
-                                }
+                                }*/
+                                var exprdef = stack.exprDef(arg.t);
+                                if (exprdef != null) expr = {expr:exprdef, pos:pos};
                             
                                 if (expr == null) expr = basicType(arg.t, pos);
 
                                 if (expr.isNullExpr()) {
                                     stack = explode(arg.t, pos, params, stack);
-                                    expr = macro @:pos(pos) $i{stack.typeVariable(arg.t).name};
+                                    //expr = macro @:pos(pos) $i{stack.typeVariable(arg.t).name};
+                                    //expr = {expr:stack.exprDef(arg.t), pos:pos};
+                                    switch stack.exprDef(arg.t) {
+                                        case EVars(vars):
+                                            expr = macro $i{vars[0].name};
+
+                                        case EFunction(FNamed(name, false), _):
+                                            expr = macro $i{name};
+
+                                        case _:
+
+                                    }
 
                                 }
 
@@ -266,9 +358,10 @@ class Default {
                                 _variable.expr = macro $p{[enm.name, ctor.name]}($a{_args});
 
                             } else {
-                                stack.fields.push(
+                                /*stack.fields.push(
                                     macro $i{_variable.name} = $p{[enm.name, ctor.name]}($a{_args})
-                                );
+                                );*/
+                                stack.addExpr( macro $i{_variable.name} = $p{[enm.name, ctor.name]}($a{_args}) );
 
 
                             }
@@ -319,7 +412,11 @@ class Default {
                         creator = cls.constructor.get();
                         creator.type = creator.type.applyTypeParameters( cls.params, p );
                         var tpath:TypePath = { pack:cls.pack, name:cls.name };
-                        makeExpr = args -> macro @:pos(pos) new $tpath($a{args});
+                        makeExpr = args -> {
+                            var e = macro @:pos(pos) new $tpath($a{args});
+                            if (!creator.isPublic) e = macro @:privateAccess $e;
+                            e;
+                        }
 
                     }
 
@@ -380,178 +477,382 @@ class Default {
 
                 stack.addVariable(clsVar, type);
 
-            case TType(_.get() => def, _params):
+            case TType(_.get() => def, p):
                 var _type = def.params.length > 0
-                    ? def.type.applyTypeParameters(def.params, _params )
+                    ? def.type.applyTypeParameters(def.params, p )
                     : def.type;
-                var length = stack.vars.length;
-                stack = explode(_type, pos, _params, stack );
-                var index = stack.typeIndex(_type);
-                if (index > -1) {
-                    stack.vars[index].t = type;
-                    stack.vars[index].v.type = type.toComplexType();
+
+                var expr = basicType(_type, pos);
+
+                if (expr.isNullExpr()) {
+                    stack = explode(_type, pos, p, stack );
+                    var index = stack.typeIndex(_type);
+                    switch stack.exprs[index] {
+                        case EVars(vars):
+                            /*var defVar = type.makeVariable(pos);
+                            defVar.expr = macro $i{vars[0].name};
+                            stack.addVariable(defVar, type);*/
+                            vars[0].type = ctype;
+                            stack.exprTypes[index] = type;
+
+                        case null, _:
+                            if (isDebug) trace( stack.toString() );
+                            Context.fatalError('Cant find subtype ${_type.toString()}', pos );
+
+                    }
+
+                } else {
+                    var defVar = type.makeVariable(pos);
+                    defVar.expr = expr;
+                    stack.addVariable(defVar, type);
 
                 }
 
             case TAnonymous(_.get() => anon):
-                var _variable = type.makeVariable(pos);
+                var _variable = { name:'$Def${counter++}', type:null, isFinal:false, expr:macro null };
                 var delayedAssignments = [];
                 var typeFields:Array<Field> = [];
                 var objectFields:Array<ObjectField> = [];
                 
                 var recursion:Null<Type> = detectCircularRef(type);
-
-                if (recursion == null) {
-                    for (field in anon.fields) if (!field.meta.has(Metas.Optional)) {
-                        var expr:Expr = basicType(field.type, field.pos);
-
-                        if (expr.isNullExpr()) {
-                            var index = stack.typeIndex(field.type);
-                            if (index > -1) {
-                                expr = macro $i{stack.vars[index].v.name};
-                                
-                            }
-
-                        }
-
-                        if (expr.isNullExpr()) {
-                            stack = explode( field.type, pos, params, stack );
-                            expr = macro $i{stack.typeVariable(field.type).name};
-
-                        }
-
-                        objectFields.push({ field:field.name, expr:expr, quotes:Unquoted });
+                trace( recursion );
+                
+                for (field in anon.fields) if (!field.isExtern && !field.meta.has(Metas.Optional)) {
+                    if (field.params.length == params.length) {
+                        field.type = field.type.applyTypeParameters( field.params, params );
 
                     }
 
-                    _variable.expr = { expr:EObjectDecl(objectFields), pos:pos };
+                    // Attempt to get a basic type expression.
+                    var expr:Expr = basicType(field.type, field.pos);
 
-                } else {
-                    for (field in anon.fields) if (!field.meta.has(Metas.Optional)) {
-                        if (field.type.unify(recursion)) {
-                            var expr = macro null;
-                            if (stack.vars.length > 0) {
-                                var index = stack.typeIndex(field.type);
-                                if (index > -1) {
-                                    expr = macro $i{stack.vars[index].v.name};
-                                    
-                                }
-                            }
-
-                            objectFields.push({ field:field.name, expr:expr, quotes:Unquoted });
-                            delayedAssignments.push( field );
-
-                        } else {
-                            var expr:Expr = basicType(field.type, field.pos);
-                                
-                            if (expr.isNullExpr()) {
-                                var index = stack.typeIndex(field.type);
-                                if (index > -1) {
-                                    expr = macro $i{stack.vars[index].v.name};
-                                    
-                                }
-
-                            }
-
-                            if (expr.isNullExpr()) {
-                                stack = explode( field.type, pos, params, stack );
-                                expr = macro $i{stack.typeVariable(field.type).name};
-
-                            }
-
-                            objectFields.push({ field:field.name, expr:expr, quotes:Unquoted });
-
+                    if (expr.isNullExpr()) {
+                        // Its not a basic type, see if it exists on the stack.
+                        var exprdef = stack.exprDef( field.type );
+                        switch exprdef {
+                            case EVars(vars): expr = macro $i{vars[0].name};
+                            case EFunction(FNamed(name, false), _): expr = macro $i{name};
+                            case x: if (isDebug) trace( x );
                         }
 
                     }
 
-                    _variable.expr = { expr:EObjectDecl(objectFields), pos:pos };
+                    var delayed = false;
+                    // Check the field type against possible recursion and
+                    // delay assignment.
+                    if (recursion != null && field.type.unify(recursion)) {
+                        delayedAssignments.push( field );
+                        delayed = true;
+                    }
+
+                    if (!delayed && expr.isNullExpr()) {
+                        // It doesnt exist on the stack. Attempt to add it.
+                        stack = explode( field.type, field.pos, params, stack );
+                        var index = stack.typeIndex( field.type );
+                        var exprdef = stack.exprs[index];
+
+                        switch exprdef {
+                            case EVars(vars):
+                                expr = macro $i{vars[0].name};
+
+                            case EFunction(FNamed(name, false), method):
+                                var paramNames = method.params.map( p -> p.name );
+                                switch field.type {
+                                    // The returned expr is meant to be used as a closure
+                                    case TFun(args, ret) if (method.args.length > args.length):
+                                        var delay:Bool = false;
+                                        if (recursion != null) for (arg in method.args) {
+                                            /*switch arg.type.toType() {
+                                                case Failure(e):
+                                                    trace( e.toString() );
+                                                    delay = true;
+                                                    break;
+
+                                                case Success(tt) if (tt.unify( recursion ) ):
+                                                    delay = true;
+                                                    break;
+
+                                                case _:                                                    
+
+                                            }*/
+                                            switch arg.type {
+                                                case TPath({name: n}) if (paramNames.indexOf( n ) > -1):
+                                                    delay = true;
+                                                    break;
+
+                                                case _:
+                                                    if (haxe.macro.ComplexTypeTools.toType( arg.type ).unify( recursion )) {
+                                                        delay = true;
+                                                        break;
+
+                                                    }
+
+                                            }
+
+                                        }
+
+                                        if (!delay) {
+                                            // The type used to index it on the stack is wrong
+                                            // wipe it so it doesnt get unified by mistake.
+                                            stack.exprTypes[index] = null;
+                                            // Create bindable args
+                                            var bindArgs = [];
+                                            for (i in 0...method.args.length) if (i < args.length) {
+                                                bindArgs.push( macro _ );
+    
+                                            } else {
+                                                // Check if the type exists on the stack.
+                                                var outcome = method.args[i].type.toType();
+                                                switch outcome {
+                                                    case Success(t):
+                                                        var _index = stack.typeIndex(t);
+                                                        switch stack.exprs[_index] {
+                                                            case EVars(vars):
+                                                                bindArgs.push( macro $i{vars[0].name} );
+    
+                                                            case EFunction(FNamed(name, false), _):
+                                                                bindArgs.push( macro $i{name} );
+    
+                                                            case null, _:
+                                                                Context.fatalError('Unexpected expression. HANDLE IT!', pos);
+    
+                                                        }
+    
+                                                    case Failure(e):
+                                                        Context.fatalError(e.toString(), pos);
+    
+                                                }
+                                            }
+    
+                                            expr = macro $i{name}.bind($a{bindArgs});
+
+                                        } else {
+                                            // A recursion was detected. Postpone setting the field.
+                                            delayedAssignments.push( field );
+                                            switch field.kind {
+                                                case FMethod(fk) if (!fk.match(MethDynamic)):
+                                                    //  Cannot rebind this method : please use 'dynamic' before method declaration
+                                                    Context.fatalError( 'This field needs a `dynamic` modifier to be settable by Default, as a recursion was detected.', field.pos );
+
+                                                case _:
+
+                                            }
+                                        }
+
+                                    case _:
+                                        expr = macro $i{name};
+
+                                }
+
+                            case x:
+                                if (isDebug) trace( x );
+
+                        }
+
+                    }
+
+                    var access = [field.isPublic ? APublic : APrivate];
+                    if (field.meta.has(Metas.Final)) access.push( AFinal );
+                    var kind = switch [field.kind, field.type] {
+                        case [FVar(read, write), ret]:
+                            FProp(
+                                varAccess(read, true), 
+                                varAccess(write, false),
+                                ret.toComplexType(),
+                                null
+                            );
+
+                        case [FMethod(fkind), TFun(args, ret)]:
+                            if (fkind.match(MethDynamic)) access.push(ADynamic);
+                            FFun({
+                                args: [for (arg in args) {
+                                    name: arg.name, opt: arg.opt, type: arg.t.toComplexType(),
+                                }],
+                                params: field.params.map( p -> { name:p.name, constraints:null, meta:null, params:null } ),
+                                ret: ret.toComplexType(),
+                                expr: null
+                            });
+
+                        case [a, b]:
+                            if (isDebug) {
+                                trace( a );
+                                trace( b );
+
+                            }
+                            Context.fatalError( 'Unsupported Field::kind. Use `-D default_debug` with `-debug` for more information.', pos );
+                            null;
+
+                    }
+
+                    typeFields.push( {
+                        name: field.name, pos: field.pos, doc: field.doc,
+                        kind: kind, access: access, meta: field.meta.get()
+                    } );
+                    objectFields.push( {
+                        field: field.name, expr: expr, quotes: Unquoted
+                    } );
 
                 }
 
+                _variable.type = TAnonymous(typeFields);
+                _variable.expr = { expr: EObjectDecl(objectFields), pos: pos };
                 stack.addVariable(_variable, type);
 
-                if (delayedAssignments.length > 0) {
-                    for (field in delayedAssignments) {
-                        stack = explode( field.type, pos, params, stack );
-                        
-                        var expr:Expr = macro null;
-                        var index = stack.typeIndex(field.type);
-                        if (index > -1) {
-                            expr = macro $i{stack.vars[index].v.name};
-                            
+                for (field in delayedAssignments) if (!field.isExtern && !field.meta.has(Metas.Optional)) {
+                    // Attempt to get a basic type expression.
+                    var expr:Expr = basicType(field.type, field.pos);
+
+                    if (expr.isNullExpr()) {
+                        // It doesnt exist on the stack. Attempt to add it.
+                        stack = explode( field.type, field.pos, params, stack );
+                        var index = stack.typeIndex( field.type );
+                        var exprdef = stack.exprs[index];
+
+                        switch exprdef {
+                            case EVars(vars):
+                                expr = macro $i{vars[0].name};
+
+                            case EFunction(FNamed(name, false), method):
+                                switch field.type {
+                                    // The returned expr is meant to be used as a closure
+                                    case TFun(args, ret) if (method.args.length > args.length):
+                                        // The type used to index it on the stack is wrong
+                                        // wipe it so it doesnt get unified by mistake.
+                                        stack.exprTypes[index] = null;
+                                        // Create bindable args
+                                        var bindArgs = [];
+                                        for (i in 0...method.args.length) if (i < args.length) {
+                                            bindArgs.push( macro _ );
+
+                                        } else {
+                                            // Check if the type exists on the stack.
+                                            var outcome = method.args[i].type.toType();
+                                            switch outcome {
+                                                case Success(t):
+                                                    var _index = stack.typeIndex(t);
+                                                    switch stack.exprs[_index] {
+                                                        case EVars(vars):
+                                                            bindArgs.push( macro $i{vars[0].name} );
+
+                                                        case EFunction(FNamed(name, false), _):
+                                                            bindArgs.push( macro $i{name} );
+
+                                                        case _:
+                                                            Context.fatalError('Unexpected expression. HANDLE IT!', pos);
+
+                                                    }
+
+                                                case Failure(e):
+                                                    Context.fatalError(e.toString(), pos);
+
+                                            }
+                                        }
+
+                                        expr = macro $i{name}.bind($a{bindArgs});
+
+                                    case _:
+                                        expr = macro $i{name};
+
+                                }
+
+                            case _:
+
                         }
 
-                        stack.addExpr( macro $p{[_variable.name, field.name]} = $expr );
-
                     }
+
+                    stack.addExpr( macro $p{[_variable.name, field.name]} = $expr );
 
                 }
 
             case TFun(args, ret):
+                var cret = ret.toComplexType();
+                trace( ret );
+                trace( cret );
                 var _variable = type.makeVariable(pos);
-                stack.addVariable( _variable, type );
-
+                var func:Function = { args: [], ret: null, expr: null, params: [] };
                 var count = 0;
-                var _args:Array<FunctionArg> = [];
 
                 for (arg in args) {
                     var _name = arg.name;
                     
+                    // TODO check for clashing names.
                     if (_name == '') {
                         _name = genAscii(count++);
                     }
+
+                    switch arg.t {
+                        case TInst(_.get() => cls = {kind:KTypeParameter(constraints)}, _):
+                            if (func.params.filter( t -> t.name != cls.name).length == 0) {
+                                func.params.push( {
+                                    name: cls.name,
+                                    constraints: constraints.map( t -> t.toComplexType() ),
+                                } );
+
+                            }
+
+                        case _:
+
+                    }
                     
-                    _args.push( {
+                    func.args.push( {
                         name: _name, 
                         opt: arg.opt, 
-                        type: arg.t.toComplexType(),
+                        type: switch arg.t {
+                            case TInst(_.get() => cls = {kind:KTypeParameter(constraints)}, _):
+                                if (constraints.length > 0) {
+                                    constraints[0].toComplexType();
+
+                                } else {
+                                    TPath({name:cls.name, pack:[]});
+
+                                }
+
+                            case _:
+                                arg.t.toComplexType();
+
+                        }
+                        //if (arg.t.match( TInst(_.get() => {kind:KTypeParameter(_)}, _) )) macro:Any else arg.t.toComplexType(),
                     } );
 
                 }
 
                 // The default expression is Void.
-                var _expr = macro {};
-
+                var _expr:Expr = macro {};
+                
                 // Attempting to use `unify` causes `Variables of type Void are not allowed` to be thrown.
                 if (ret.toString() != 'Void') {
                     var _ret:Expr = null;
 
                     // Prefer to return an argument instead of a default value, if possible.
-                    for (arg in _args) if (arg.type.toType().sure().unify(ret)) {
-                        _ret = macro $i{arg.name};
+                    for (i in 0...args.length) if (args[i].t.unify(ret)) {
+                        _ret = macro $i{func.args[i].name};
                         break;
                     }
-                    
+
                     // If not, just return a default value.
                     if (_ret == null) _ret = basicType(ret, pos);
-                    
-                    // Assume its a complex type.
+
+                    // Its not a basic type and its not a type in the `arg` list.
+                    // So add it to the arg list, so it can `bind`ed later.
                     if (_ret.isNullExpr()) {
-                        for (pair in stack.vars) {
-                            if (pair.t.unify(ret) || pair.v.type.toType().sure().unify(ret)) {
-                                _ret = macro cast $i{pair.v.name};
-                                break;
-    
-                            }
-    
-                        }
+                        var index = func.args.push( {
+                            name: genAscii(count++), 
+                            opt: false, 
+                            type: cret,
+                        } ) - 1;
+                        var _arg = func.args[index];
+                        _ret = macro $i{_arg.name};
 
                     }
 
                     _expr = macro return $_ret;
 
                 }
-                
-                _variable.expr = {
-                    expr:EFunction(FAnonymous, {
-                        args: _args,
-                        ret: ret.toComplex(),
-                        expr: _expr,
-                        params: [],
-                    }), 
-                    pos:pos 
-                }
+
+                func.ret = cret;
+                func.expr = _expr;
+                stack.addExprDef( EFunction(FNamed(_variable.name, false), func), type );
 
             case x:
                 if (isDebug) {
@@ -636,7 +937,7 @@ class Default {
                 }
 
             case x:
-                if (isDebug) trace( x );
+                //if (isDebug) trace( x );
 
         }
 
@@ -648,65 +949,6 @@ class Default {
         case _: false;
     }
 
-    public static function handleDelayedAssignments(fields:Array<{name:String, type:Type, params:Array<TypeParameter>, pos:Position}>, params:Array<Type>, stack:Stack, id:String):Stack {
-        if (isDebug) {
-            trace( '---current stack---' );
-            trace( stack.toString() );
-        }
-
-        for (field in fields) {
-            if (isDebug) {
-                trace( '---delayed assignments---' );
-                trace( 'field       :   ' + field.name );
-                trace( 'type        :   ' + field.type.toString() );
-
-            }
-            var expr = macro null;
-            var ftype = field.type;
-            if (field.params.length > 0) ftype = ftype.applyTypeParameters(field.params, params);
-
-            for (v in stack.vars) {
-                if (isDebug) {
-                    trace( '---checking stack---' );
-                    trace( 'var name        :   ' + v.v.name );
-                    trace( 'var type        :   ' + v.v.type.toString() + ' || ' + v.t.toString() );
-                }
-                if (v.t.unify(ftype) || v.v.type.toType().sure().unify(ftype)) {
-                    if (isDebug) {
-                        trace( '---found var on stack---' );
-                        trace( 'var name        :   ' + v.v.name );
-                        trace( 'var type        :   ' + v.v.type.toString() + ' || ' + v.t.toString() );
-                    }
-                    expr = macro $i{v.v.name};
-                    stack.fields.push( macro @:pos(field.pos) $p{[id, field.name]} = $i{v.v.name} );
-                    break;
-                }
-
-            }
-            
-            // Run again in case of more complex types.
-            if (expr.isNullExpr()) {
-                if (isDebug) {
-                    trace( '---expr null---' );
-                    trace( '---explode type ' + ftype.toString() + '---' );
-                }
-                var explosion = explode(ftype, field.pos, params, stack);
-                
-                for (v in explosion.vars) if (v.t.unify(ftype) || v.v.type.toType().sure().unify(ftype)) {
-                    stack.fields.push( macro $p{[id, field.name]} = $i{v.v.name} );
-                    break;
-                    
-                }
-                
-                stack = /*stack + */explosion;
-
-            }
-
-        }
-
-        return stack;
-    }
-
     public static function detectCircularRef(type:Type, ?types:Array<Type>):Null<Type> {
         var result:Null<Type> = null;
         var list:Array<Type> = [];
@@ -715,6 +957,7 @@ class Default {
         var current = type;
 
         while (current != null) {
+            trace( 'checking type: ' + current.toString() );
             var isCore:Bool = false;
             var isFunc:Bool = false;
 
@@ -735,7 +978,21 @@ class Default {
 
                         case KAbstractImpl(ref):
                             for (field in cls.statics.get()) if (field.name == '_new') {
-                                list.push( field.type.reduce() );
+                                switch field.type.reduce() {
+                                    case TFun(args, _):
+                                        /**
+                                            Why is the return type ignored?
+                                            ---
+                                            As an abstract ctor its return type is itself,
+                                            not `Void` like a class ctor, adding it to the
+                                            list will cause a false positive.
+                                        **/
+                                        for (arg in args) list.push( arg.t );
+
+                                    case x:
+                                        list.push( x );
+
+                                }
                                 break;
 
                             }
@@ -761,9 +1018,10 @@ class Default {
 
                     }
 
-                case TFun(args, _):
+                case TFun(args, ret):
                     isFunc = true;
                     for (a in args) list.push(a.t);
+                    list.push( ret );
 
                 case TType(_.get() => def, _):
                     switch def.type {
@@ -796,7 +1054,7 @@ class Default {
                     
                 } else {
                     trace( 'loop detected.' );
-                    trace( index, stypes );
+                    trace( index, stypes, current.toString() );
                     result = types[index];
                     break;
                     
@@ -835,7 +1093,18 @@ class Default {
 
                     if (expr.isNullExpr()) {
                         stack = explode( arg.t, pos, concreteParams, stack );
-                        expr = macro $i{stack.typeVariable(arg.t).name};
+                        //expr = macro $i{stack.typeVariable(arg.t).name};
+                        //expr = {expr:stack.exprDef(arg.t), pos:pos};
+                        switch stack.exprDef(arg.t) {
+                            case EVars(vars):
+                                expr = macro $i{vars[0].name};
+
+                            case EFunction(FNamed(name, false), _):
+                                expr = macro $i{name};
+
+                            case _:
+
+                        }
 
                     }
 
@@ -849,6 +1118,15 @@ class Default {
         }
 
         return args;
+    }
+
+    private static function varAccess(access:VarAccess, get:Bool):String {
+        return switch access {
+            case AccNo: 'null';
+            case AccNever: 'never';
+            case AccCall: get?'get':'set';
+            case _: 'default';
+        }
     }
 
 }

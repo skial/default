@@ -26,10 +26,14 @@ class Main {
                 new typedefs.SingleDefField(),
                 new typedefs.NestedDef(),
                 new typedefs.RecursiveDef(),
+                new typedefs.LocalMethod(),
+                new typedefs.LocalTypeParam(),
+                new typedefs.Intersection(),
                 new abstracts.RawAbstract(),
                 new abstracts.RawComplexAbstract(),
                 new abstracts.SingleAbstractField(),
                 new abstracts.NestedAbstract(),
+
                 // Not possible to support, afaik.
                 //new abstracts.RecursiveAbstract(),
                 new abstracts.FromCast(),
@@ -44,8 +48,8 @@ class Main {
                 new parameters.MethodParams(),
                 /*new DefaultBasicSpec(),
                 new DefaultEnumSpec(),
-                new DefaultClassSpec(),
-                new DefaultTypedefSpec(),*/
+                new DefaultClassSpec(),*/
+                //new DefaultTypedefSpec(),
             ])
 
         ).handle(Runner.exit);
