@@ -11,7 +11,9 @@ class RawComplexAbstract {
     public function test() {
         var v:Default<Abs> = nil;
 
+        #if !static
         asserts.assert( v != null );
+        #end
         asserts.assert( v.a == '' );
         asserts.assert( v.b == false );
 

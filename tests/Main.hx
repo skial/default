@@ -33,9 +33,6 @@ class Main {
                 new abstracts.RawComplexAbstract(),
                 new abstracts.SingleAbstractField(),
                 new abstracts.NestedAbstract(),
-
-                // Not possible to support, afaik.
-                //new abstracts.RecursiveAbstract(),
                 new abstracts.FromCast(),
                 new abstracts.FromCastField(),
                 new abstracts.FromCastFieldComplex(),

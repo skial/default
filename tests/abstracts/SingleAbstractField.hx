@@ -11,7 +11,9 @@ class SingleAbstractField {
     public function test() {
         var v:Default<Abs> = nil;
 
+        #if !static
         asserts.assert( v != null );
+        #end
         asserts.assert( v.a == '' );
 
         return asserts.done();

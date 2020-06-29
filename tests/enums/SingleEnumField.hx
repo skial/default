@@ -11,7 +11,9 @@ class SingleEnumField {
     public function test() {
         var a:Default<Foo> = NIL;
 
+        #if !static
         asserts.assert( a != null );
+        #end
         asserts.assert( a.get().match(Empty) );
 
         return asserts.done();

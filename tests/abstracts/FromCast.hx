@@ -11,7 +11,9 @@ class FromCast {
     public function test() {
         var a:Default<Abs0> = nil;
 
+        #if !static
         asserts.assert( a != null );
+        #end
         asserts.assert( a.toString() == Std.string({a:'', b:0}) );
         asserts.assert( a.a == '' );
         asserts.assert( a.b == 0 );

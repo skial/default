@@ -11,7 +11,9 @@ class RedefinedType {
     public function test() {
         var a:Default<Str> = nil;
 
+        #if !static
         asserts.assert( a != null );
+        #end
         asserts.assert( a == '' );
 
         return asserts.done();
@@ -20,7 +22,9 @@ class RedefinedType {
     public function testFromModule() {
         var a:Default<TFoo> = nil;
 
+        #if !static
         asserts.assert( a != null );
+        #end
         asserts.assert( a == '' );
 
         return asserts.done();

@@ -11,8 +11,10 @@ class SingleDefField {
     public function test() {
         var a:Default<Def> = NIL;
 
+        #if !static
         asserts.assert( a != null );
         asserts.assert( a.foo != null );
+        #end
         asserts.assert( a.foo == '' );
 
         return asserts.done();

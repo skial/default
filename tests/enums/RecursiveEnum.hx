@@ -11,7 +11,9 @@ class RecursiveEnum {
     public function test() {
         var a:Default<A> = NIL;
 
+        #if !static
         asserts.assert( a != null );
+        #end
         asserts.assert( a.get().match( Ref(Arg(0, '', .0)) ) );
 
         return asserts.done();

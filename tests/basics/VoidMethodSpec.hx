@@ -14,7 +14,9 @@ class VoidMethodSpec {
 
         var a:Default<Void->Void> = nil;
 
+        #if !static
         asserts.assert( a != null );
+        #end
         asserts.assert( Error.catchExceptions( a.get() ).isSuccess() );
 
         return asserts.done();

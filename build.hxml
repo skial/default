@@ -9,27 +9,21 @@
 -cp src
 -cp tests
 
--debug
+#-debug
 -dce full
 
 -D default-debug
 -D analyzer-optimize
 -D eval-stack
-#-D eval-times
-#-D nightly
-#-D no-macro-cache
-#-D no-copt
-#-D no-compilation
-#-D macro-times 
-#-D dce-debug 
+#-D dump=pretty
 
 -main Main
 
 --each
 
-#-neko bin/default.n
-#
-#--next
+-neko bin/default.n
+
+--next
 
 -lib hxnodejs
 -js bin/default.js

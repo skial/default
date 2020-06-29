@@ -11,7 +11,9 @@ class SingleEnumCtor {
     public function test() {
         var a:Default<Foo> = NIL;
 
+        #if !static
         asserts.assert( a != null );
+        #end
         asserts.assert( a.get().match(Ctor('', 0, .0, false)) );
 
         return asserts.done();

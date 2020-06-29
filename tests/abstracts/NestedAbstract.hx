@@ -11,8 +11,10 @@ class NestedAbstract {
     public function test() {
         var v:Default<Abs0> = nil;
 
+        #if !static
         asserts.assert( v != null );
         asserts.assert( v.a != null );
+        #end
         asserts.assert( v.a == Std.string({foo:0}) );
         asserts.assert( v.self.b == 0 );
 

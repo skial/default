@@ -11,7 +11,9 @@ class StringSpec {
     public function test() {
         var a:Default<String> = nil;
 
+        #if !static
         asserts.assert( a != null );
+        #end
         asserts.assert( a == '' );
 
         return asserts.done();

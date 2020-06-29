@@ -11,7 +11,9 @@ class SingleBasicField {
     public function test() {
         var v:Default<Cls> = nil;
 
+        #if !static
         asserts.assert( v != null );
+        #end
         asserts.assert( v.a == '' );
 
         return asserts.done();

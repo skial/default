@@ -132,27 +132,10 @@ class Default {
                 // Attempt to use the implementations static `_new`.
                 if (abs.impl != null) {
                     var inst = TInst(abs.impl, p);
-                    trace( inst );
                     recursion = detectCircularRef(inst, [type]);
 
                     if (recursion == null) {
-                        trace( inst );
                         stack = explode( inst, pos, params, stack );
-                        /*var index = stack.typeIndex( inst );
-
-                        if (index > -1) {
-                            stack.vars[index].t = type;
-                            stack.vars[index].v.type = ctype;
-
-                            if (!stack.vars[index].v.expr.isNullExpr()) {
-                                return stack;
-
-                            } else {
-                                // Abandon previous variable, try again with `from`.
-                                stack.vars.splice(index, 1);
-
-                            }
-                        }*/
                         var index = stack.typeIndex( inst );
                         var exprdef = stack.exprs[index];
                         if (exprdef != null) {
@@ -162,7 +145,7 @@ class Default {
                                     vars[0].type = ctype;
                                     
                                     if (!vars[0].expr.isNullExpr()) {
-                                        trace( vars[0] );
+                                        if (isDebug) trace( vars[0] );
                                         return stack;
 
                                     } else {
@@ -187,7 +170,7 @@ class Default {
                         // preloaded with original abs `type`.
                         recursion = detectCircularRef(field.t, [type]);
 
-                        trace( field, recursion );
+                        //trace( field, recursion );
 
                         if (recursion == null) {
                             var expr:Expr = basicType( field.t, pos );
@@ -393,7 +376,7 @@ class Default {
                             pack: abs.pack, name: abs.name,
                         };
                         
-                        for (field in cls.statics.get()) if (field.name == '_new') {
+                        for (field in cls.statics.get()) if (field.name == '_new' && field.isPublic) {
                             field.type = field.type.reduce().applyTypeParameters( abs.params, p );
                             creator = field;
                             break;
@@ -515,7 +498,7 @@ class Default {
                 var objectFields:Array<ObjectField> = [];
                 
                 var recursion:Null<Type> = detectCircularRef(type);
-                trace( recursion );
+                //trace( recursion );
                 
                 for (field in anon.fields) if (!field.isExtern && !field.meta.has(Metas.Optional)) {
                     if (field.params.length == params.length) {
@@ -767,8 +750,6 @@ class Default {
 
             case TFun(args, ret):
                 var cret = ret.toComplexType();
-                trace( ret );
-                trace( cret );
                 var _variable = type.makeVariable(pos);
                 var func:Function = { args: [], ret: null, expr: null, params: [] };
                 var count = 0;
@@ -924,13 +905,11 @@ class Default {
                 result = macro @:pos(pos) {};
 
             case TAbstract(_.get() => abs, _params) if (abs.from.length > 0):
-                for (field in abs.from) {
+                for (field in abs.from) if (field.field == null) {
                     result = basicType(field.t, pos);
                     if (!result.isNullExpr()) {
-                        // TODO
-                        // the cast prevents the compiler from stating `nil` should 
-                        // be `abstract type` even tho the correct type/expr is returned.
-                        result = macro cast $result;
+                        var ct = type.toComplexType();
+                        result = macro ($result:$ct);
                         break;
                     }
 
@@ -957,7 +936,7 @@ class Default {
         var current = type;
 
         while (current != null) {
-            trace( 'checking type: ' + current.toString() );
+            if (isDebug) trace( 'checking type: ' + current.toString() );
             var isCore:Bool = false;
             var isFunc:Bool = false;
 
@@ -1042,7 +1021,7 @@ class Default {
                     }
 
                 case x:
-                    trace( x.toString() );
+                    if (isDebug) trace( x.toString() );
 
             }
 
@@ -1053,8 +1032,10 @@ class Default {
                     stypes.push( current.toString() );
                     
                 } else {
-                    trace( 'loop detected.' );
-                    trace( index, stypes, current.toString() );
+                    if (isDebug) {
+                        trace( 'loop detected.' );
+                        trace( index, stypes, current.toString() );
+                    }
                     result = types[index];
                     break;
                     

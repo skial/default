@@ -11,8 +11,10 @@ class FromCastField {
     public function test() {
         var a:Default<Abs0> = NIL;
 
+        #if !static
         asserts.assert( a != null );
-        asserts.assert( a.toString() == '0' );
+        #end
+        asserts.assert( a.toString() == Std.string(0) );
 
         return asserts.done();
     }
@@ -27,11 +29,11 @@ private abstract Abs0(String) {
     }
 
     @:from public static function fromInt(v:Int) {
-        return cast '' + v;
+        return cast Std.string(v);
     }
 
     @:from public static function fromFloat(v:Float) {
-        return cast '' + v;
+        return cast Std.string(v);
     }
 
 }

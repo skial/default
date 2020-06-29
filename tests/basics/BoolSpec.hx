@@ -11,7 +11,9 @@ class BoolSpec {
     public function test() {
         var a:Default<Bool> = nil;
 
+        #if !static
         asserts.assert( a != null );
+        #end
         asserts.assert( a == false );
 
         return asserts.done();

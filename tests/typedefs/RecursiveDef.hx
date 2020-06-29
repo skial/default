@@ -11,15 +11,20 @@ class RecursiveDef {
     public function test001() {
         var a:Default<Def> = nil;
 
+        #if !static
         asserts.assert( a != null );
         asserts.assert( a.foo != null );
+        #end
         asserts.assert( a.foo.a == 0 );
         asserts.assert( a.foo.b == '' );
+        #if !static
         asserts.assert( a.foo.c != null );
+        #end
 
         return asserts.done();
     }
 
+    #if !static
     public function test002() {
         var a:Default<Ouroboros> = NIL;
 
@@ -27,6 +32,7 @@ class RecursiveDef {
 
         return asserts.done();
     }
+    #end
 
 }
 

@@ -10,9 +10,11 @@ class LocalMethod {
 
     public function test() {
         var a:Default<Foo> = nil;
-
+        
+        #if !static
         asserts.assert( a != null );
         asserts.assert( a.make != null );
+        #end
         asserts.assert( a.make('hello') != null );
 
         return asserts.done();

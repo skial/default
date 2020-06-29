@@ -10,8 +10,9 @@ class LocalTypeParam {
 
     public function test() {
         var a:Default<Foo> = nil;
-
+        #if !static
         asserts.assert( a != null );
+        #end
         /**
             Why isnt this inlined into `assert(_)`?
             It causes the compiler to hang if it is. I expect

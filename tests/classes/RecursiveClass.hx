@@ -11,8 +11,10 @@ class RecursiveClass {
     public function test() {
         var v:Default<A> = nil;
 
+        #if !static
         asserts.assert( v != null );
         asserts.assert( v.str != null );
+        #end
         /**
             Class A, field `str` has an initializer, so its set before
             returning the empty class.
@@ -22,7 +24,9 @@ class RecursiveClass {
             Class A, field `a` has no initializer so will be null,
             as the ctor is not called.
         **/
+        #if !static
         asserts.assert( v.a == null );
+        #end
         //asserts.assert( v.a != null );
         //asserts.assert( v.a.b != null );
 

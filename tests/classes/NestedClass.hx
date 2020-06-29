@@ -11,9 +11,11 @@ class NestedClass {
     public function test() {
         var v:Default<Cls0> = nil;
 
+        #if !static
         asserts.assert( v != null );
         asserts.assert( v.a != null );
         asserts.assert( v.a.b != null );
+        #end
         asserts.assert( v.a.b == '' );
 
         return asserts.done();

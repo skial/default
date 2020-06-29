@@ -11,7 +11,9 @@ class IntSpec {
     public function test() {
         var a:Default<Int> = nil;
 
+        #if !static
         asserts.assert( a != null );
+        #end
         asserts.assert( a == 0 );
 
         return asserts.done();

@@ -12,7 +12,9 @@ class ObjectSpec {
     public function test() {
         var a:Default<{}> = nil;
 
+        #if !static
         asserts.assert( a != null );
+        #end
         asserts.assert( Reflect.isObject(a) );
 
         return asserts.done();

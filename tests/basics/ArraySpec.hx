@@ -11,10 +11,14 @@ class ArraySpec {
     public function test() {
         var a:Default<Array<Bool>> = nil;
 
+        #if !static
         asserts.assert( a != null );
-        asserts.assert( a.length == 0 );
         // The `get` access is annoying.
         asserts.assert( a.get()[0] == null );
+        #else
+        asserts.assert( a.get()[0] == false );
+        #end
+        asserts.assert( a.length == 0 );
 
         return asserts.done();
     }
