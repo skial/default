@@ -9,7 +9,7 @@
 -cp src
 -cp tests
 
-#-debug
+-debug
 -dce full
 
 -D default-debug
@@ -20,14 +20,38 @@
 -main Main
 
 --each
-#
+
 #-neko bin/default.n
 #
 #--next
 #
 #-lib hxnodejs
 #-js bin/default.js
-
+#
 #--next
-
--hl bin/default.hl
+#
+#-hl bin/default.hl
+#
+#--next
+#
+#-php bin/php
+#
+#--next
+#
+# Compiles fine, but only with patch https://github.com/haxetink/tink_testrunner/pull/15
+#-python bin/default.py
+#
+#--next
+#-lib hxjava
+# @error Java does not support system environment setting??
+#--jvm bin/jvm/test.jar
+#
+#--next
+#-lib hxjava
+# build failed, can't find symbols
+#--java bin/java
+#
+#--next
+# @see https://github.com/HaxeFoundation/haxe/issues/9669
+-lib hxcs
+--cs bin/cs

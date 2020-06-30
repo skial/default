@@ -744,6 +744,14 @@ class Default {
 
                     }
 
+                    // @see https://github.com/HaxeFoundation/haxe/issues/9669
+                    if (Context.defined('cs')) {
+                        var localVar = { name:'$Def${counter++}', type:null, isFinal:false, expr:expr };
+                        expr = macro $i{localVar.name};
+                        stack.addVariable(localVar, null);
+
+                    }
+
                     stack.addExpr( macro $p{[_variable.name, field.name]} = $expr );
 
                 }
