@@ -13,13 +13,8 @@ class LocalTypeParam {
         #if !static
         asserts.assert( a != null );
         #end
-        /**
-            Why isnt this inlined into `assert(_)`?
-            It causes the compiler to hang if it is. I expect
-            one of tink_* libraries gets stuck trying to print/type
-            the expression.
-        **/
-        var check:Bool = a.make != null;
+        // see https://github.com/HaxeFoundation/haxe/issues/9661
+        var check:Bool = a.maker != null;
         asserts.assert( check );
 
         return asserts.done();
@@ -27,6 +22,8 @@ class LocalTypeParam {
 
 }
 
+// @see https://github.com/HaxeFoundation/haxe/issues/9662
 private typedef Foo = {
-    dynamic function make<T>(v:T):Foo;
+    // Renaming to from `make` to `maker` gets around issue.
+    dynamic function maker<T>(v:T):Foo;
 }

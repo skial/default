@@ -20,14 +20,14 @@
 -main Main
 
 --each
-
--neko bin/default.n
-
---next
-
--lib hxnodejs
--js bin/default.js
-
+#
+#-neko bin/default.n
+#
 #--next
 #
-#-hl bin/default.hl
+#-lib hxnodejs
+#-js bin/default.js
+
+#--next
+
+-hl bin/default.hl
