@@ -5,9 +5,12 @@ import haxe.macro.Expr;
 import haxe.macro.Metas;
 import haxe.macro.Defines;
 import be.types.defaulting.Stack;
+import be.types.defaulting.Errors;
+import be.types.defaulting.Warnings;
 import haxe.macro.Expr.QuoteStatus;
 
 using Std;
+using StringTools;
 using tink.CoreApi;
 using tink.MacroApi;
 using be.macros.Default;
@@ -56,19 +59,13 @@ class Default {
                 } else {
                     switch explosion.exprDef(type) {
                         case EVars(vars):
-                            var expr = macro @:pos(pos) $i{vars[0].name};
-                            /*for (v in vars) if (v.type.toType().sure().unify(type)) {
-                                expr = macro @:pos(pos) $i{v.name};
-
-                            }*/
-                            
-                            expr;
+                            macro @:pos(pos) $i{vars[0].name};
 
                         case EFunction(FNamed(name), _):
                             macro @:pos(pos) $i{name};
 
                         case x:
-                            Context.fatalError('Unexpected expression returned.', pos);
+                            Context.fatalError( Errors.UnexpectedExpression, pos );
 
                     }
                     
@@ -232,10 +229,10 @@ class Default {
                 
                 
                 if (recursion != null) {
-                    Context.fatalError( 'A potential recursion was detected in type ${type.toString()}. This is not supported by Default.', pos );
+                    Context.fatalError( Errors.CircularDependency.replace('::a::', type.toString()).replace('::b::', recursion.toString()), pos );
 
                 } else {
-                    Context.fatalError( 'No implementation constructed. UNKNOWN::ERROR::FIX. 🔥', pos );
+                    Context.fatalError( Errors.NoExpression, pos );
 
                 }
 
@@ -390,7 +387,8 @@ class Default {
 
                 } else {
                     if (Defines.Debug) {
-                        Context.warning( 'The constructor of `${type.toString()}` will not be called. A circular dependency has been detected which is unsupported by Default.', pos );
+                        Context.warning( Warnings.MakeEmptyClass.replace('::t::', type.toString()), pos );
+
                     }
                     // A circular ref has _potentially_ been detected.
                     // Find all Haxe initilized fields and set them.
@@ -456,7 +454,7 @@ class Default {
 
                         case null, _:
                             if (isDebug) trace( stack.toString() );
-                            Context.fatalError('Cant find subtype ${_type.toString()}', pos );
+                            Context.fatalError( Errors.MissingSubType.replace('::t::', _type.toString()), pos );
 
                     }
 
@@ -495,8 +493,10 @@ class Default {
                     }
 
                     var delayed = false;
-                    // Check the field type against possible recursion and
-                    // delay assignment if it does.
+                    /**
+                        Check the field type against possible recursion and
+                        delay assignment if it does.
+                    **/
                     if (recursion != null && field.type.unify(recursion)) {
                         delayedAssignments.push( field );
                         delayed = true;
@@ -540,8 +540,10 @@ class Default {
                                         }
 
                                         if (!delay) {
-                                            // The type used to index it on the stack is wrong
-                                            // wipe it so it doesnt get unified by mistake.
+                                            /**
+                                                The type used to index it on the stack is wrong
+                                                wipe it so it doesnt get unified by mistake.
+                                            **/
                                             stack.exprTypes[index] = null;
                                             // Create bindable args
                                             var bindArgs = [];
@@ -562,7 +564,7 @@ class Default {
                                                                 bindArgs.push( macro $i{name} );
     
                                                             case null, _:
-                                                                Context.fatalError('Unexpected expression. HANDLE IT!', pos);
+                                                                Context.fatalError( Errors.UnexpectedExpression, pos );
     
                                                         }
     
@@ -579,8 +581,7 @@ class Default {
                                             delayedAssignments.push( field );
                                             switch field.kind {
                                                 case FMethod(fk) if (!fk.match(MethDynamic)):
-                                                    //  Cannot rebind this method : please use 'dynamic' before method declaration
-                                                    Context.fatalError( 'This field needs a `dynamic` modifier to be settable by Default, as a recursion was detected.', field.pos );
+                                                    Context.fatalError( Errors.MethodNotDynamic, field.pos );
 
                                                 case _:
 
@@ -627,7 +628,7 @@ class Default {
                                 trace( b );
 
                             }
-                            Context.fatalError( 'Unsupported Field::kind. Use `-D default_debug` with `-debug` for more information.', pos );
+                            Context.fatalError( Errors.UnexpectedExpression, pos );
                             null;
 
                     }
@@ -664,8 +665,10 @@ class Default {
                                 switch field.type {
                                     // The returned expr is meant to be used as a closure
                                     case TFun(args, ret) if (method.args.length > args.length):
-                                        // The type used to index it on the stack is wrong
-                                        // wipe it so it doesnt get unified by mistake.
+                                        /**
+                                            The type used to index it on the stack is wrong
+                                            wipe it so it doesnt get unified by mistake.
+                                        **/
                                         stack.exprTypes[index] = null;
                                         // Create bindable args
                                         var bindArgs = [];
@@ -686,7 +689,7 @@ class Default {
                                                             bindArgs.push( macro $i{name} );
 
                                                         case _:
-                                                            Context.fatalError('Unexpected expression. HANDLE IT!', pos);
+                                                            Context.fatalError( Errors.UnexpectedExpression, pos );
 
                                                     }
 
@@ -694,6 +697,7 @@ class Default {
                                                     Context.fatalError(e.toString(), pos);
 
                                             }
+
                                         }
 
                                         expr = macro $i{name}.bind($a{bindArgs});
