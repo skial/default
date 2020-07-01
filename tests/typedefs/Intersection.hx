@@ -21,10 +21,8 @@ class Intersection {
         #end
         asserts.assert( a.b == 0 );
         #if !static
-        var check = a.make != null;
-        asserts.assert( check );
-        var check = a.make('') != null;
-        asserts.assert( check );
+        asserts.assert( a.make != null );
+        asserts.assert( a.make('') != null );
         #end
 
         return asserts.done();

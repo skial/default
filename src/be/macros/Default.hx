@@ -4,7 +4,7 @@ import haxe.macro.Type;
 import haxe.macro.Expr;
 import haxe.macro.Metas;
 import haxe.macro.Defines;
-import be.types._default.Stack;
+import be.types.defaulting.Stack;
 import haxe.macro.Expr.QuoteStatus;
 
 using Std;
@@ -54,7 +54,6 @@ class Default {
                     explosion.snapshot(type, pos);
 
                 } else {
-                    //macro @:pos(pos) $i{explosion.typeVariable(type).name};
                     switch explosion.exprDef(type) {
                         case EVars(vars):
                             var expr = macro @:pos(pos) $i{vars[0].name};
@@ -94,6 +93,7 @@ class Default {
                 null;
 
             case TFun(args, _):
+                // Ignore the type parameter.
                 if (args.filter( a -> a.t.match( TInst(_.get() => {kind:KTypeParameter(_)}, _) ) ).length > 0) {
                     null;
 
@@ -138,6 +138,7 @@ class Default {
                         stack = explode( inst, pos, params, stack );
                         var index = stack.typeIndex( inst );
                         var exprdef = stack.exprs[index];
+
                         if (exprdef != null) {
                             stack.exprTypes[index] = type;
                             switch exprdef {
@@ -166,25 +167,18 @@ class Default {
                 // Attempt to create a type from a compatible `from $type` expression.
                 if (abs.from.length > 0) {
                     for (field in abs.from) {
-                        // Run `detectCircularRef` for each `from` type, 
-                        // preloaded with original abs `type`.
+                        /**
+                            Run `detectCircularRef` for each `from` type, 
+                            preloaded with original abs `type`.
+                        **/
                         recursion = detectCircularRef(field.t, [type]);
-
-                        //trace( field, recursion );
 
                         if (recursion == null) {
                             var expr:Expr = basicType( field.t, pos );
 
                             if (expr.isNullExpr()) {
                                 stack = explode( field.t, pos, params, stack );
-                                /*var index = stack.typeIndex( field.t );
-
-                                if (index > -1) {
-                                    stack.vars[index].t = type;
-                                    stack.vars[index].v.type = ctype;
-
-                                    return stack;
-                                }*/
+                                
                                 var exprdef = stack.exprDef( field.t );
                                 if (exprdef != null) {
                                     switch exprdef {
@@ -216,22 +210,7 @@ class Default {
                 recursion = detectCircularRef(abs.type, [type]);
                 if (recursion == null) {
                     stack = explode( abs.type, pos, params, stack );
-                    /*var index = stack.typeIndex( abs.type );
 
-                    if (index > -1) {
-                        stack.vars[index].t = type;
-                        stack.vars[index].v.type = ctype;
-
-                        if (!stack.vars[index].v.expr.isNullExpr()) {
-                            stack.vars[index].v.expr = macro cast $e{stack.vars[index].v.expr};
-                            return stack;
-
-                        } else {
-                            // Abandon previous variable. No more attempts.
-                            stack.vars.splice(index, 1);
-
-                        }
-                    }*/
                     var index = stack.typeIndex( abs.type );
                     var exprdef = stack.exprs[index];
                     if (exprdef != null) stack.exprTypes[index] = type;
@@ -472,9 +451,6 @@ class Default {
                     var index = stack.typeIndex(_type);
                     switch stack.exprs[index] {
                         case EVars(vars):
-                            /*var defVar = type.makeVariable(pos);
-                            defVar.expr = macro $i{vars[0].name};
-                            stack.addVariable(defVar, type);*/
                             vars[0].type = ctype;
                             stack.exprTypes[index] = type;
 
@@ -496,9 +472,7 @@ class Default {
                 var delayedAssignments = [];
                 var typeFields:Array<Field> = [];
                 var objectFields:Array<ObjectField> = [];
-                
                 var recursion:Null<Type> = detectCircularRef(type);
-                //trace( recursion );
                 
                 for (field in anon.fields) if (!field.isExtern && !field.meta.has(Metas.Optional)) {
                     if (field.params.length == params.length) {
@@ -522,7 +496,7 @@ class Default {
 
                     var delayed = false;
                     // Check the field type against possible recursion and
-                    // delay assignment.
+                    // delay assignment if it does.
                     if (recursion != null && field.type.unify(recursion)) {
                         delayedAssignments.push( field );
                         delayed = true;
@@ -541,23 +515,14 @@ class Default {
                             case EFunction(FNamed(name, false), method):
                                 var paramNames = method.params.map( p -> p.name );
                                 switch field.type {
-                                    // The returned expr is meant to be used as a closure
+                                    // The returned expr is meant to be used as a closure.
                                     case TFun(args, ret) if (method.args.length > args.length):
                                         var delay:Bool = false;
                                         if (recursion != null) for (arg in method.args) {
-                                            /*switch arg.type.toType() {
-                                                case Failure(e):
-                                                    trace( e.toString() );
-                                                    delay = true;
-                                                    break;
-
-                                                case Success(tt) if (tt.unify( recursion ) ):
-                                                    delay = true;
-                                                    break;
-
-                                                case _:                                                    
-
-                                            }*/
+                                            /**
+                                                If the arg type is a type parameter or unifies with
+                                                `recursion`, delay building the expression.
+                                            **/
                                             switch arg.type {
                                                 case TPath({name: n}) if (paramNames.indexOf( n ) > -1):
                                                     delay = true;
@@ -745,7 +710,7 @@ class Default {
                     }
 
                     // @see https://github.com/HaxeFoundation/haxe/issues/9669
-                    if (Context.defined('cs')) {
+                    if (Context.defined('cs') || Context.defined('java')) {
                         var localVar = { name:'$Def${counter++}', type:null, isFinal:false, expr:expr };
                         expr = macro $i{localVar.name};
                         stack.addVariable(localVar, null);
@@ -801,7 +766,6 @@ class Default {
                                 arg.t.toComplexType();
 
                         }
-                        //if (arg.t.match( TInst(_.get() => {kind:KTypeParameter(_)}, _) )) macro:Any else arg.t.toComplexType(),
                     } );
 
                 }
@@ -887,16 +851,16 @@ class Default {
             case TInst(_.get() => cls, _params) if (cls.meta.has(Metas.CoreType) || cls.meta.has(Metas.CoreApi)):
                 switch cls.name {
                     case 'Array': result = macro @:pos(pos) [];
-                    case 'String': result = macro @:pos(pos) be.types._default.Defaults.string;
+                    case 'String': result = macro @:pos(pos) be.types.defaulting.Defaults.string;
                     case x: 
                         if (isDebug) trace( x );
                 }
 
             case TAbstract(_.get() => abs, _params) if(abs.meta.has(Metas.CoreType) || abs.meta.has(Metas.CoreApi)):
                 switch abs.name {
-                    case 'Int': result = macro @:pos(pos) be.types._default.Defaults.int;
-                    case 'Float': result = macro @:pos(pos) be.types._default.Defaults.float;
-                    case 'Bool': result = macro @:pos(pos) be.types._default.Defaults.bool;
+                    case 'Int': result = macro @:pos(pos) be.types.defaulting.Defaults.int;
+                    case 'Float': result = macro @:pos(pos) be.types.defaulting.Defaults.float;
+                    case 'Bool': result = macro @:pos(pos) be.types.defaulting.Defaults.bool;
                     case 'Null': result = basicType(_params[0], pos);
                     case x: 
                         if (isDebug) trace( x );
@@ -923,8 +887,7 @@ class Default {
 
                 }
 
-            case x:
-                //if (isDebug) trace( x );
+            case _:
 
         }
 

@@ -1,4 +1,4 @@
-package be.types._default;
+package be.types.defaulting;
 
 /*class Defaults {
 

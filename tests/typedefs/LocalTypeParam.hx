@@ -13,9 +13,7 @@ class LocalTypeParam {
         #if !static
         asserts.assert( a != null );
         #end
-        // see https://github.com/HaxeFoundation/haxe/issues/9661
-        var check:Bool = a.maker != null;
-        asserts.assert( check );
+        asserts.assert( a.maker != null );
 
         return asserts.done();
     }

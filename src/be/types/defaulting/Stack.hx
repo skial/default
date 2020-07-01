@@ -1,4 +1,4 @@
-package be.types._default;
+package be.types.defaulting;
 
 import haxe.macro.Type;
 import haxe.macro.Expr;
@@ -36,14 +36,9 @@ abstract Stack(StackObj) from StackObj {
     public inline function new() this = { exprs: [], assignments: [], exprTypes: [] };
 
     public function typeIndex(t:Type):Int {
-        //var ct = t.toComplexType();
-        //return complexTypeIndex(ct);
-        //trace( t.toString() );
         var i = this.exprs.length-1;
+
         while (i >= 0) {
-        //for (i in 0...this.exprs.length) {
-            //trace( i, this.exprTypes[i] );
-            //trace( i );
             switch this.exprs[i] {
                 case EVars(vars):
                     /*trace( v.type.toType() );
@@ -52,22 +47,7 @@ abstract Stack(StackObj) from StackObj {
 
                 case EFunction(FNamed(n, false), method):
                     if (this.exprTypes[i] != null && (this.exprTypes[i].unify( t ) || this.exprTypes[i].unify( Context.follow(t, true) ))) return i;
-                    /*trace( TFunction(method.args.map( a -> a.type), method.ret).toType() );
-                    switch t {
-                        case TFun(args, ret) if (method.args.length == args.length):
-                            if (method.ret.toType().sure().unify(ret)) {
-                                var bool = false;
-                                for (i in 0...method.args.length) {
-                                    bool = method.args[i].type.toType().sure().unify( args[i].t );
-                                    if (!bool) break;
-                                }
-                                if (bool) return i;
-
-                            }
-
-                        case _:
-
-                    }*/
+                    
 
                 case _:
 
@@ -75,18 +55,11 @@ abstract Stack(StackObj) from StackObj {
             i--;
 
         }
-        /*for (i in 0...this.vars.length) {
-            if (Context.unify(this.vars[i].t, t)) return i;
-        }*/
+
         return -1;
     }
 
-    /*public function typeVariable(t:Type):Var {
-        return this.vars[typeIndex(t)].v;
-    }*/
-
     public inline function exprDef(t:Type):Null<ExprDef> {
-        //return this.vars[typeIndex(t)].v;
         return this.exprs[typeIndex(t)];
     }
 
@@ -98,27 +71,16 @@ abstract Stack(StackObj) from StackObj {
 
     public function addVariable(variable:Var, t:Type):Int {
         var index = -1;
-        /*for (i in 0...this.vars.length) if (this.vars[i].v.name == v.name) {
-            index = i;
-            break;
-        }
-
-        if (index == -1) {
-            index = this.vars.push( { v:v, t:t } );
-
-        }*/
-        //trace( 'looking for ${variable.name}...' );
+        
         for (i in 0...this.exprs.length) switch this.exprs[i] {
             case EVars(vars):
                 for (v in vars) if (v.name == variable.name) {
-                    //trace( 'found ${variable.name} at index $i' );
                     return i;
                 }
 
             case EFunction(kind, method):
                 switch kind {
                     case FNamed(name, _) if (name == variable.name):
-                        //trace( 'found ${variable.name} at index $i' );
                         return i;
 
                     case _:
@@ -128,7 +90,7 @@ abstract Stack(StackObj) from StackObj {
             case _:
 
         }
-        //trace( variable.name + ' does not exist, adding to list. ');
+        
         index = this.exprs.push( EVars([variable]) ) - 1;
         this.exprTypes[index] = t;
 
@@ -136,7 +98,6 @@ abstract Stack(StackObj) from StackObj {
     }
 
     public function addExpr(e:Expr):Int {
-        //return this.fields.push( e );
         return this.assignments.push( e ) - 1;
     }
 
@@ -152,7 +113,6 @@ abstract Stack(StackObj) from StackObj {
         var result = macro null;
         var expr = exprDef(type);
         if (expr == null) {
-            //trace( toString() );
             Context.fatalError( 'Type does not exist. ${type.toString()}', pos );
         }
         
@@ -182,37 +142,7 @@ abstract Stack(StackObj) from StackObj {
                 .concat( this.assignments )
                 .concat( [rexpr] )
         };
-        /*// Make sure variables are correctly typed for static targets.
-        for (variable in this.vars) {
-            switch variable.v.type {
-                case TPath({name:'Null'}):
-                    
-                case x if (variable.v.expr.isNullExpr()):
-                    var ctype = variable.v.type;
-                    variable.v.type = macro:Null<$ctype>;
-
-            }
-            
-        }
-
-        var variables = {
-            expr:EVars(this.vars.map(p -> p.v)), pos:pos
-        };
-
-        var stack = [variables].concat( this.fields );
-
-        if (this.vars.length > 0) {
-            var index = typeIndex(type);
-            var variable = this.vars[index];
-            var ct = variable.v.type;//Context.toComplexType(variable.t);
-            // See issue #20 - https://gitlab.com/b.e/default/-/issues/20
-            //stack.push( macro @:pos(pos) @:nullSafety(false) ($i{this.vars[0].v.name}:$ct) );
-            //stack.push( macro @:pos(pos) @:nullSafety(false) $i{this.vars[this.vars.length-1].v.name} );
-            stack.push( macro @:pos(pos) @:nullSafety(Off) ($i{variable.v.name}:$ct) );
-        }
-
-        result = macro @:pos(pos) @:mergeBlock $b{stack};*/
-
+        
         return result;
     }
 
