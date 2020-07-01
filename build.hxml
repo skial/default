@@ -9,7 +9,7 @@
 -cp src
 -cp tests
 
--debug
+#-debug
 -dce full
 
 #-D default-debug
@@ -23,34 +23,33 @@
 
 -neko bin/default.n
 
-#--next
-#
-#-lib hxnodejs
-#-js bin/default.js
-#
-#--next
-#
-#-hl bin/default.hl
-#
-#--next
-#
-#-php bin/php
-#
-#--next
-#
-#-python bin/default.py
-#
-#--next
-#-lib hxjava
-#--jvm bin/jvm/test.jar
-#
-#--next
-## @see https://github.com/HaxeFoundation/haxe/issues/9675
-#-lib hxjava
-#--java bin/java
-#
-#--next
-## @see https://github.com/HaxeFoundation/haxe/issues/9669
-#-lib hxcs
-#--cs bin/cs
-#
+--next
+
+-lib hxnodejs
+-js bin/default.js
+
+--next
+
+-hl bin/default.hl
+
+--next
+
+-php bin/php
+
+--next
+
+-python bin/default.py
+
+--next
+-lib hxjava
+--jvm bin/jvm/test.jar
+
+--next
+# @see https://github.com/HaxeFoundation/haxe/issues/9675
+-lib hxjava
+--java bin/java
+
+--next
+# @see https://github.com/HaxeFoundation/haxe/issues/9669
+-lib hxcs
+--cs bin/cs
