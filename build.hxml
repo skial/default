@@ -21,12 +21,13 @@
 
 --each
 
--neko bin/default.n
-
---next
 
 -lib hxnodejs
 -js bin/default.js
+
+--next
+
+-neko bin/default.n
 
 --next
 

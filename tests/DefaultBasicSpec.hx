@@ -35,11 +35,11 @@ class DefaultBasicSpec {
     }
 
     #if !static
+    @:nullSafety(Off)
     public function testNullString() {
-        @:nullSafety(Off)
         var a:Default<String> = null;
         var b:Default<String> = HELLO;
-        asserts.assert(a == '');
+        asserts.assert(a == null);
         asserts.assert(HELLO == b);
 
         asserts.done();
@@ -58,11 +58,11 @@ class DefaultBasicSpec {
     }
 
     #if !static
+    @:nullSafety(Off)
     public function testNullInt() {
-        @:nullSafety(Off)
         var a:Default<Int> = null;
         var b:Default<Int> = N1000;
-        asserts.assert(a == 0);
+        asserts.assert(a == null);
         asserts.assert(N1000 == b);
 
         asserts.done();
@@ -81,12 +81,12 @@ class DefaultBasicSpec {
     }
 
     #if !static
+    @:nullSafety(Off)
     public function testNullFloat() {
-        @:nullSafety(Off)
         var a:Default<Float> = null;
         var b:Default<Float> = F1000;
         
-        asserts.assert(a == .0);
+        asserts.assert(a == null);
         asserts.assert(F1000 == b);
 
         asserts.done();

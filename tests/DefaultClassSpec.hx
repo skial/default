@@ -17,10 +17,10 @@ class A {
     public var d:Int;
     public var e:Default<Bool> = nil;
 
-    public function new(a:String, ?c:Int, ?d:Default<Int>) {
+    public function new(a:String, ?c:Int, ?d:Int) {
         this.a = a;
         this.c = c == null ? 10 : c;
-        this.d = d;
+        this.d = c == null ? 0  : d;
     }
 
 }

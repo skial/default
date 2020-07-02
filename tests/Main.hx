@@ -43,9 +43,9 @@ class Main {
                 new parameters.DefParams(),
                 new parameters.AbsParams(),
                 new parameters.MethodParams(),
-                /*new DefaultBasicSpec(),
+                new DefaultBasicSpec(),
                 new DefaultEnumSpec(),
-                new DefaultClassSpec(),*/
+                new DefaultClassSpec(),
                 //new DefaultTypedefSpec(),
             ])
 

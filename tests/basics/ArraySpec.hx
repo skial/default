@@ -13,10 +13,9 @@ class ArraySpec {
 
         #if !static
         asserts.assert( a != null );
-        // The `get` access is annoying.
-        asserts.assert( a.get()[0] == null );
+        asserts.assert( a[0] == null );
         #else
-        asserts.assert( a.get()[0] == false );
+        asserts.assert( a[0] == false );
         #end
         asserts.assert( a.length == 0 );
 

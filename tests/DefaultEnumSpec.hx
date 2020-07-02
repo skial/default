@@ -50,6 +50,7 @@ class DefaultEnumSpec {
         return asserts;
     }
 
+    @:nullSafety(Off)
     public function testEnum_loop() {
         var f:Default<F> = NIL;
         
