@@ -3,6 +3,7 @@ package be.types;
 #if (eval || macro)
 import haxe.macro.Expr;
 import haxe.macro.Defines;
+import be.types.defaulting.LocalDefines;
 
 using tink.MacroApi;
 using haxe.macro.Context;
@@ -16,7 +17,7 @@ using tink.CoreApi;
 abstract Default<T>(T) from T to T {
 
     public #if !debug inline #end function new(v) this = v;
-
+    // Have to keep until a work around for https://github.com/HaxeFoundation/haxe/issues/9685 is found.
     public #if !debug inline #end function get():T return this;
 
     public static #if !debug inline #end function fromSafeValue<T>(v:T):Default<T> {
@@ -44,13 +45,12 @@ abstract Default<T>(T) from T to T {
     #end
 
     #if (eval || macro)
-    private static final isDebug = Defines.Debug && Context.defined('default_debug');
     public static function fromExpr(v:Expr):Expr {
         var value = be.macros.Default.typeToValue( Context.getExpectedType(), v.pos );
         var result = macro @:pos(v.pos) be.types.Default.fromSafeValue($value);
         
-        if (isDebug) {
-            trace( '---nil expr---' );
+        if (Defines.Debug && LocalDefines.DefaultVerbose) {
+            trace( '---expr---' );
             trace( result.toString() );
             trace( '---####---' );
 

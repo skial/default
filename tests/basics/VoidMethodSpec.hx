@@ -17,7 +17,7 @@ class VoidMethodSpec {
         #if !static
         asserts.assert( a != null );
         #end
-        asserts.assert( Error.catchExceptions( a.get() ).isSuccess() );
+        asserts.assert( Error.catchExceptions( a ).isSuccess() );
 
         return asserts.done();
     }

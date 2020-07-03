@@ -7,6 +7,7 @@ import haxe.macro.Defines;
 import be.types.defaulting.Stack;
 import be.types.defaulting.Errors;
 import be.types.defaulting.Warnings;
+import be.types.defaulting.LocalDefines;
 import haxe.macro.Expr.QuoteStatus;
 
 using Std;
@@ -20,23 +21,6 @@ using haxe.macro.TypeTools;
 private enum abstract SConsts(String) from String to String {
     var Default = 'Default';
     var Def = 'def';
-}
-
-private enum abstract IConsts(Int) from Int to Int {
-    var DefSub = 3;
-}
-
-private enum abstract LocalDefines(Defines) {
-    public var DefaultVerbose = 'default-debug';
-    
-    @:to public inline function asBool():Bool {
-		return haxe.macro.Context.defined(this);
-	}
-
-    @:op(A == B) private static function equals(a:LocalDefines, b:Bool):Bool;
-    @:op(A && B) private static function and(a:LocalDefines, b:Bool):Bool;
-    @:op(A != B) private static function not(a:LocalDefines, b:Bool):Bool;
-    @:op(!A) private static function negate(a:LocalDefines):Bool;
 }
 
 class Default {
@@ -57,16 +41,9 @@ class Default {
                     explosion.snapshot(type, pos);
 
                 } else {
-                    switch explosion.exprDef(type) {
-                        case EVars(vars):
-                            macro @:pos(pos) $i{vars[0].name};
-
-                        case EFunction(FNamed(name), _):
-                            macro @:pos(pos) $i{name};
-
-                        case x:
-                            Context.fatalError( Errors.UnexpectedExpression, pos );
-
+                    switch explosion.getIdentifier(type) {
+                        case null: Context.fatalError( Errors.UnexpectedExpression, pos );
+                        case _name: macro @:pos(pos) $i{_name};
                     }
                     
                 }
@@ -114,10 +91,7 @@ class Default {
         if (params == null) params = [];
 
         var index = stack.typeIndex(type);
-        if (index > -1) {
-            return stack;
-            
-        }
+        if (index > -1) return stack;
         
         switch type {
             case TAbstract(_.get() => {name:Default}, p):
@@ -138,6 +112,7 @@ class Default {
 
                         if (exprdef != null) {
                             stack.exprTypes[index] = type;
+
                             switch exprdef {
                                 case EVars(vars):
                                     vars[0].type = ctype;
@@ -203,13 +178,14 @@ class Default {
 
                 }
 
-                // Attempt to build its raw type and casting to type.
+                // Attempt to build its raw type and casting to the type.
                 recursion = detectCircularRef(abs.type, [type]);
                 if (recursion == null) {
                     stack = explode( abs.type, pos, params, stack );
 
                     var index = stack.typeIndex( abs.type );
                     var exprdef = stack.exprs[index];
+                    // Change the exprs type to the abstract not its underlying type.
                     if (exprdef != null) stack.exprTypes[index] = type;
                     switch exprdef {
                         case EVars(vars):
@@ -271,29 +247,20 @@ class Default {
                                     arg.t = arg.t.applyTypeParameters( enm.params, p );
                                 }
 
-                                /*for (pair in stack.vars) if (pair.t.unify(arg.t)) {
-                                    var name = pair.v.name;
-                                    expr = macro $i{name};
-                                    break;
-
-                                }*/
                                 var exprdef = stack.exprDef(arg.t);
-                                if (exprdef != null) expr = {expr:exprdef, pos:pos};
-                            
-                                if (expr == null) expr = basicType(arg.t, pos);
+                                if (exprdef != null) {
+                                    expr = {expr:exprdef, pos:pos};
+
+                                } else {
+                                    expr = basicType(arg.t, pos);
+
+                                }
 
                                 if (expr.isNullExpr()) {
                                     stack = explode(arg.t, pos, params, stack);
-                                    //expr = macro @:pos(pos) $i{stack.typeVariable(arg.t).name};
-                                    //expr = {expr:stack.exprDef(arg.t), pos:pos};
-                                    switch stack.exprDef(arg.t) {
-                                        case EVars(vars):
-                                            expr = macro $i{vars[0].name};
-
-                                        case EFunction(FNamed(name, false), _):
-                                            expr = macro $i{name};
-
-                                        case _:
+                                    switch stack.getIdentifier(arg.t) {
+                                        case null:
+                                        case _name: expr = macro $i{_name};
 
                                     }
 
@@ -317,9 +284,6 @@ class Default {
                                 _variable.expr = macro $p{[enm.name, ctor.name]}($a{_args});
 
                             } else {
-                                /*stack.fields.push(
-                                    macro $i{_variable.name} = $p{[enm.name, ctor.name]}($a{_args})
-                                );*/
                                 stack.addExpr( macro $i{_variable.name} = $p{[enm.name, ctor.name]}($a{_args}) );
 
 
@@ -390,13 +354,15 @@ class Default {
                         Context.warning( Warnings.MakeEmptyClass.replace('::t::', type.toString()), pos );
 
                     }
-                    // A circular ref has _potentially_ been detected.
-                    // Find all Haxe initilized fields and set them.
+                    /**
+                        A circular ref has _potentially_ been detected.
+                        Find all Haxe initilized fields and set them. 
+                    **/
                     for (field in cls.fields.get()) if (!field.isExtern) {
                         if (field.expr() == null) continue;
 
                         var stringly = field.type.toString();
-                        // If the param matches a enum type parameter, attempt to convert into concrete type.
+                        // If the param matches a class type parameter, attempt to convert into concrete type.
                         for (param in strClsParams) if (/*param.t == arg.t*/param == stringly) {
                             field.type = field.type.applyTypeParameters( cls.params, p );
                         }
@@ -447,6 +413,7 @@ class Default {
                 if (expr.isNullExpr()) {
                     stack = explode(_type, pos, p, stack );
                     var index = stack.typeIndex(_type);
+                    
                     switch stack.exprs[index] {
                         case EVars(vars):
                             vars[0].type = ctype;
@@ -483,11 +450,9 @@ class Default {
 
                     if (expr.isNullExpr()) {
                         // Its not a basic type, see if it exists on the stack.
-                        var exprdef = stack.exprDef( field.type );
-                        switch exprdef {
-                            case EVars(vars): expr = macro $i{vars[0].name};
-                            case EFunction(FNamed(name, false), _): expr = macro $i{name};
-                            case x: if (isDebug) trace( x );
+                        switch stack.getIdentifier(field.type) {
+                            case null:
+                            case _name: expr = macro $i{_name};
                         }
 
                     }
@@ -518,6 +483,7 @@ class Default {
                                     // The returned expr is meant to be used as a closure.
                                     case TFun(args, ret) if (method.args.length > args.length):
                                         var delay:Bool = false;
+
                                         if (recursion != null) for (arg in method.args) {
                                             /**
                                                 If the arg type is a type parameter or unifies with
@@ -541,7 +507,7 @@ class Default {
 
                                         if (!delay) {
                                             /**
-                                                The type used to index it on the stack is wrong
+                                                The type used to index it on the stack is wrong,
                                                 wipe it so it doesnt get unified by mistake.
                                             **/
                                             stack.exprTypes[index] = null;
@@ -555,17 +521,9 @@ class Default {
                                                 var outcome = method.args[i].type.toType();
                                                 switch outcome {
                                                     case Success(t):
-                                                        var _index = stack.typeIndex(t);
-                                                        switch stack.exprs[_index] {
-                                                            case EVars(vars):
-                                                                bindArgs.push( macro $i{vars[0].name} );
-    
-                                                            case EFunction(FNamed(name, false), _):
-                                                                bindArgs.push( macro $i{name} );
-    
-                                                            case null, _:
-                                                                Context.fatalError( Errors.UnexpectedExpression, pos );
-    
+                                                        switch stack.getIdentifier(t) {
+                                                            case null: Context.fatalError( Errors.UnexpectedExpression, pos );
+                                                            case _name: bindArgs.push( macro $i{_name} );
                                                         }
     
                                                     case Failure(e):
@@ -682,16 +640,9 @@ class Default {
                                             switch outcome {
                                                 case Success(t):
                                                     var _index = stack.typeIndex(t);
-                                                    switch stack.exprs[_index] {
-                                                        case EVars(vars):
-                                                            bindArgs.push( macro $i{vars[0].name} );
-
-                                                        case EFunction(FNamed(name, false), _):
-                                                            bindArgs.push( macro $i{name} );
-
-                                                        case _:
-                                                            Context.fatalError( Errors.UnexpectedExpression, pos );
-
+                                                    switch stack.getIdentifier(t) {
+                                                        case null: Context.fatalError( Errors.UnexpectedExpression, pos );
+                                                        case _name: bindArgs.push( macro $i{_name} );
                                                     }
 
                                                 case Failure(e):
@@ -857,8 +808,7 @@ class Default {
                 switch cls.name {
                     case 'Array': result = macro @:pos(pos) [];
                     case 'String': result = macro @:pos(pos) be.types.defaulting.Defaults.string;
-                    case x: 
-                        if (isDebug) trace( x );
+                    case x: if (isDebug) trace( x );
                 }
 
             case TAbstract(_.get() => abs, _params) if(abs.meta.has(Metas.CoreType) || abs.meta.has(Metas.CoreApi)):
@@ -867,8 +817,7 @@ class Default {
                     case 'Float': result = macro @:pos(pos) be.types.defaulting.Defaults.float;
                     case 'Bool': result = macro @:pos(pos) be.types.defaulting.Defaults.bool;
                     case 'Null': result = basicType(_params[0], pos);
-                    case x: 
-                        if (isDebug) trace( x );
+                    case x: if (isDebug) trace( x );
                     
                 }
 
@@ -884,10 +833,12 @@ class Default {
             case TAbstract(_.get() => abs, _params) if (abs.from.length > 0):
                 for (field in abs.from) if (field.field == null) {
                     result = basicType(field.t, pos);
+
                     if (!result.isNullExpr()) {
                         var ct = type.toComplexType();
                         result = macro ($result:$ct);
                         break;
+
                     }
 
                 }
@@ -1050,17 +1001,9 @@ class Default {
 
                     if (expr.isNullExpr()) {
                         stack = explode( arg.t, pos, concreteParams, stack );
-                        //expr = macro $i{stack.typeVariable(arg.t).name};
-                        //expr = {expr:stack.exprDef(arg.t), pos:pos};
-                        switch stack.exprDef(arg.t) {
-                            case EVars(vars):
-                                expr = macro $i{vars[0].name};
-
-                            case EFunction(FNamed(name, false), _):
-                                expr = macro $i{name};
-
-                            case _:
-
+                        switch stack.getIdentifier(arg.t) {
+                            case null:
+                            case _name: expr = macro $i{_name};
                         }
 
                     }

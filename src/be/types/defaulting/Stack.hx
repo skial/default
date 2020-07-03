@@ -3,6 +3,8 @@ package be.types.defaulting;
 import haxe.macro.Type;
 import haxe.macro.Expr;
 import haxe.macro.Context;
+import haxe.macro.Defines;
+import be.types.defaulting.LocalDefines;
 
 using StringTools;
 using tink.CoreApi;
@@ -29,10 +31,10 @@ class StackObj {
     public var assignments:Array<Expr> = [];
 }
 
-//@:forward(vars, fields)
 @:forward(exprs, exprTypes, assignments)
 abstract Stack(StackObj) from StackObj {
 
+    private static final isDebug = Debug && DefaultVerbose;
     public inline function new() this = { exprs: [], assignments: [], exprTypes: [] };
 
     public function typeIndex(t:Type):Int {
@@ -41,8 +43,6 @@ abstract Stack(StackObj) from StackObj {
         while (i >= 0) {
             switch this.exprs[i] {
                 case EVars(vars):
-                    /*trace( v.type.toType() );
-                    trace( v.type.toString() );*/
                     if (this.exprTypes[i] != null && (this.exprTypes[i].unify( t ) || this.exprTypes[i].unify( Context.follow(t, true) ))) return i;
 
                 case EFunction(FNamed(n, false), method):
@@ -61,6 +61,26 @@ abstract Stack(StackObj) from StackObj {
 
     public inline function exprDef(t:Type):Null<ExprDef> {
         return this.exprs[typeIndex(t)];
+    }
+
+    public function getIdentifier(t:Type):Null<String> {
+        var index = typeIndex(t);
+        if (index > -1) {
+            switch this.exprs[index] {
+                case EVars(vars):
+                    return vars[0].name;
+
+                case EFunction(FNamed(name, false), _):
+                    return name;
+
+                case null, _:
+                    return null;
+
+            }
+
+        }
+
+        return null;
     }
 
     public function addExprDef(def:ExprDef, t:Type):Int {
@@ -110,31 +130,24 @@ abstract Stack(StackObj) from StackObj {
             case _:
 
         }
+
         var result = macro null;
-        var expr = exprDef(type);
-        if (expr == null) {
-            Context.fatalError( 'Type does not exist. ${type.toString()}', pos );
-        }
-        
-        var rexpr = switch expr {
-            case EVars(vars):
-                macro $i{vars[0].name};
-
-            case EFunction(FNamed(name, _), _):
-                macro $i{name};
-
-            case _:
-                macro null;
+        var rexpr = switch getIdentifier(type) {
+            case null: Context.fatalError( Errors.MissingType.replace('::t::', type.toString()), pos );
+            case _name: macro $i{_name};
         }
 
-        /*trace( 
-            this.exprs
-            .map( d -> { expr:d, pos:pos } )
-            .map( e -> e.toString() )
-        );*/
+        if (isDebug) {
+            trace( 
+                this.exprs
+                .map( d -> { expr:d, pos:pos } )
+                .map( e -> e.toString() )
+            );
 
-        //trace( this.assignments.map( e -> e.toString() ) );
-        //trace( rexpr.toString() );
+            trace( this.assignments.map( e -> e.toString() ) );
+            trace( rexpr.toString() );
+
+        }
 
         result = macro @:mergeBlock $b{
             this.exprs

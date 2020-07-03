@@ -16,6 +16,7 @@ class IntMethodSpec {
         #if !static
         asserts.assert( a != null );
         #end
+        // @see https://github.com/HaxeFoundation/haxe/issues/9685
         asserts.assert( Error.catchExceptions( a.get().bind(10) ).isSuccess() );
 
         return asserts.done();
