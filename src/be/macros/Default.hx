@@ -15,8 +15,8 @@ using StringTools;
 using tink.CoreApi;
 using tink.MacroApi;
 using be.macros.Default;
-using haxe.macro.Context;
 using haxe.macro.TypeTools;
+using haxe.macro.Context;
 
 private enum abstract SConsts(String) from String to String {
     var Default = 'Default';
@@ -804,14 +804,14 @@ class Default {
             case TAbstract(_.get() => {name:Default}, _params):
                 result = basicType(_params[0], pos);
 
-            case TInst(_.get() => cls, _params) if (cls.meta.has(Metas.CoreType) || cls.meta.has(Metas.CoreApi)):
+            case TInst(_.get() => cls, _params) if (cls.meta.has(Metas.CoreType) || cls.meta.has(Metas.CoreApi) || Defines.Interp.asBool()):
                 switch cls.name {
                     case 'Array': result = macro @:pos(pos) [];
                     case 'String': result = macro @:pos(pos) be.types.defaulting.Defaults.string;
                     case x: if (isDebug) trace( x );
                 }
 
-            case TAbstract(_.get() => abs, _params) if(abs.meta.has(Metas.CoreType) || abs.meta.has(Metas.CoreApi)):
+            case TAbstract(_.get() => abs, _params) if(abs.meta.has(Metas.CoreType) || abs.meta.has(Metas.CoreApi) || Defines.Interp.asBool()):
                 switch abs.name {
                     case 'Int': result = macro @:pos(pos) be.types.defaulting.Defaults.int;
                     case 'Float': result = macro @:pos(pos) be.types.defaulting.Defaults.float;
@@ -871,6 +871,18 @@ class Default {
                 case TInst(_.get() => cls, p):
                     if (cls.meta.has(Metas.CoreApi) || cls.meta.has(Metas.CoreType)) {
                         isCore = true;
+
+                    } else if (Defines.Interp) {
+                        switch cls.name {
+                            case 'String' | 'Array':
+                                isCore = true;
+
+                            case x:
+                                if (isDebug) trace( x );
+
+                        }
+                        
+                            
                     }
 
                     switch cls.kind {

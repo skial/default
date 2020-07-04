@@ -11,6 +11,7 @@ using tink.CoreApi;
 using tink.MacroApi;
 using be.macros.Default;
 using haxe.macro.TypeTools;
+using haxe.macro.Context;
 
 /**
     macro @:mergeBlock $b{

@@ -1,6 +1,6 @@
 package be.types;
 
-#if (eval || macro)
+#if macro
 import haxe.macro.Expr;
 import haxe.macro.Defines;
 import be.types.defaulting.LocalDefines;
@@ -13,7 +13,6 @@ using Std;
 using tink.CoreApi;
 
 @:forward
-@:notNull
 abstract Default<T>(T) from T to T {
 
     public #if !debug inline #end function new(v) this = v;
@@ -44,10 +43,10 @@ abstract Default<T>(T) from T to T {
     }
     #end
 
-    #if (eval || macro)
+    #if macro
     public static function fromExpr(v:Expr):Expr {
         var value = be.macros.Default.typeToValue( Context.getExpectedType(), v.pos );
-        var result = macro @:pos(v.pos) be.types.Default.fromSafeValue($value);
+        var result = macro @:pos(v.pos) new be.types.Default($value);
         
         if (Defines.Debug && LocalDefines.DefaultVerbose) {
             trace( '---expr---' );

@@ -53,3 +53,7 @@
 # @see https://github.com/HaxeFoundation/haxe/issues/9669
 -lib hxcs
 --cs bin/cs
+
+--next
+
+--interp
