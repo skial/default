@@ -30,8 +30,7 @@ class DefaultBasicSpec {
         asserts.assert('' == a);
         asserts.assert(HELLO == b);
 
-        asserts.done();
-        return asserts;
+        return asserts.done();
     }
 
     #if !static
@@ -42,8 +41,7 @@ class DefaultBasicSpec {
         asserts.assert(a == null);
         asserts.assert(HELLO == b);
 
-        asserts.done();
-        return asserts;
+        return asserts.done();
     }
     #end
 
@@ -53,8 +51,7 @@ class DefaultBasicSpec {
         asserts.assert(a == 0);
         asserts.assert(b == N1000);
 
-        asserts.done();
-        return asserts;
+        return asserts.done();
     }
 
     #if !static
@@ -65,8 +62,7 @@ class DefaultBasicSpec {
         asserts.assert(a == null);
         asserts.assert(N1000 == b);
 
-        asserts.done();
-        return asserts;
+        return asserts.done();
     }
     #end
 
@@ -76,8 +72,7 @@ class DefaultBasicSpec {
         asserts.assert(a == .0);
         asserts.assert(b == F1000);
 
-        asserts.done();
-        return asserts;
+        return asserts.done();
     }
 
     #if !static
@@ -89,8 +84,7 @@ class DefaultBasicSpec {
         asserts.assert(a == null);
         asserts.assert(F1000 == b);
 
-        asserts.done();
-        return asserts;
+        return asserts.done();
     }
     #end
 
@@ -101,8 +95,7 @@ class DefaultBasicSpec {
         asserts.assert( Reflect.fields( a.get() ).length == 0 );
         asserts.assert({a:'1'}.a == b.a);
 
-        asserts.done();
-        return asserts;
+        return asserts.done();
     }
 
     #if !static
@@ -114,8 +107,7 @@ class DefaultBasicSpec {
         asserts.assert( Reflect.fields( a.get() ).length == 0 );
         asserts.assert({a:'1'}.a == b.a);
 
-        asserts.done();
-        return asserts;
+        return asserts.done();
     }
     #end
 
@@ -124,18 +116,8 @@ class DefaultBasicSpec {
 
         asserts.assert( {a:''}.a == b.a );
 
-        asserts.done();
-        return asserts;
+        return asserts.done();
     }
-
-    // Currently doesnt build a matching struct at runtime.
-    /*public function testNullTypedObject() {
-        var b:Default<{a:String}> = null;
-        asserts.assert('' + {a:''} == '' + b);
-
-        asserts.done();
-        return asserts;
-    }*/
 
     public function testArray() {
         var a:Default<Array<String>> = NIL;
@@ -146,8 +128,7 @@ class DefaultBasicSpec {
         asserts.assert('' + [] == '' + a);
         asserts.assert('' + ['a', 'b'] == '' + b);
 
-        asserts.done();
-        return asserts;
+        return asserts.done();
     }
 
     public function testAbstract_simple() {
@@ -155,8 +136,7 @@ class DefaultBasicSpec {
 
         asserts.assert( '' == path );
 
-        asserts.done();
-        return asserts;
+        return asserts.done();
     }
 
     #if thx_core
@@ -167,8 +147,7 @@ class DefaultBasicSpec {
         asserts.assert('' == a);
         asserts.assert(HELLO == b);
 
-        asserts.done();
-        return asserts;
+        return asserts.done();
     }
     #end
 
@@ -180,8 +159,7 @@ class DefaultBasicSpec {
         asserts.assert('' == a);
         asserts.assert(HELLO == b);
 
-        asserts.done();
-        return asserts;
+        return asserts.done();
     }
     #end
 
@@ -191,15 +169,17 @@ class DefaultBasicSpec {
         asserts.assert( !a.exists('') );
         asserts.assert( 0 == a.keys().length, '' + a.keys() );
 
-        asserts.done();
-        return asserts;
+        return asserts.done();
     }
 
-    /*#if !static
+    #if !static
+    /**
+        Only compiles with `-D tink_json_compact_code`
+    **/
     public function testTinkJsonRepresentation() {
         var s:Default<{foo:String, bar:Int}> = NIL;
         s.bar = 100;
-        var j = tink.Json.stringify(s);
+        var j:String = tink.Json.stringify(s);
 
         asserts.assert( '{"bar":100,"foo":""}' == j );
 
@@ -208,9 +188,8 @@ class DefaultBasicSpec {
         asserts.assert( '' == s.foo );
         asserts.assert( 100 == s.bar );
 
-        asserts.done();
-        return asserts;
+        return asserts.done();
     }
-    #end*/
+    #end
 
 }

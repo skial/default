@@ -37,8 +37,7 @@ class DefaultEnumSpec {
         
         asserts.assert( d.get().match(Empty) );
 
-        asserts.done();
-        return asserts;
+        return asserts.done();
     }
 
     public function testEnum_args() {
@@ -46,8 +45,7 @@ class DefaultEnumSpec {
         
         asserts.assert( e.get().match(Arg3(0, '', .0)) );
 
-        asserts.done();
-        return asserts;
+        return asserts.done();
     }
 
     @:nullSafety(Off)
@@ -56,8 +54,7 @@ class DefaultEnumSpec {
         
         asserts.assert( f.get().match( Ref(Arg3(0, '', .0)) ) );
 
-        asserts.done();
-        return asserts;
+        return asserts.done();
     }
 
 }

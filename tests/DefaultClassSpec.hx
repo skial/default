@@ -43,8 +43,7 @@ class A {
         asserts.assert( 0 == a.d );
         asserts.assert( false == a.e );
 
-        asserts.done();
-        return asserts;
+        return asserts.done();
     }
 
     public function testDefaultCtor_Public() {
@@ -57,8 +56,7 @@ class A {
         asserts.assert( 0 == a.d );
         asserts.assert( false == a.e );
 
-        asserts.done();
-        return asserts;
+        return asserts.done();
     }
 
     public function testDefaultCtor_Private() {
@@ -68,8 +66,7 @@ class A {
         asserts.assert(b != null);
         #end
         asserts.assert(b.i == 100);
-        asserts.done();
-        return asserts;
+        return asserts.done();
     }
 
 }

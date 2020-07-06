@@ -15,6 +15,7 @@
 -D analyzer-optimize
 -D eval-stack
 #-D dump=pretty
+-D tink_json_compact_code
 
 -main Main
 
