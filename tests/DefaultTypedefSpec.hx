@@ -22,7 +22,7 @@ typedef A_ = {
 }
 
 typedef B_<T> = {>A_,
-    function b():T;
+    dynamic function b():T;
 }
 
 typedef C = {
@@ -107,8 +107,7 @@ typedef J = {
         asserts.assert( .0 == c.e.c );
         asserts.assert( c.e.d.length == 0 );
 
-        asserts.done();
-        return asserts;
+        return asserts.done();
     }
 
     public function testTypedefAlias_simple() {

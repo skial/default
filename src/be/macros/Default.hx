@@ -438,6 +438,10 @@ class Default {
                 var typeFields:Array<Field> = [];
                 var objectFields:Array<ObjectField> = [];
                 var recursion:Null<Type> = detectCircularRef(type);
+
+                if (isDebug) {
+                    trace( 'recursion   :   ' + recursion.toString() );
+                }
                 
                 for (field in anon.fields) if (!field.isExtern && !field.meta.has(Metas.Optional)) {
                     if (field.params.length == params.length) {
@@ -463,6 +467,9 @@ class Default {
                         delay assignment if it does.
                     **/
                     if (recursion != null && field.type.unify(recursion)) {
+                        if (isDebug) {
+                            trace( 'Delaying ${field.name}' );
+                        }
                         delayedAssignments.push( field );
                         delayed = true;
                     }
@@ -804,7 +811,7 @@ class Default {
             case TAbstract(_.get() => {name:Default}, _params):
                 result = basicType(_params[0], pos);
 
-            case TInst(_.get() => cls, _params) if (cls.meta.has(Metas.CoreType) || cls.meta.has(Metas.CoreApi) || Defines.Interp.asBool()):
+            case TInst(_.get() => cls, _params) if (cls.meta.has(Metas.CoreType) || cls.meta.has(Metas.CoreApi) || Defines.Interp.asBool() || Context.defined('hl') || Context.defined('cs')):
                 switch cls.name {
                     case 'Array': result = macro @:pos(pos) [];
                     case 'String': result = macro @:pos(pos) be.types.defaulting.Defaults.string;
@@ -872,7 +879,7 @@ class Default {
                     if (cls.meta.has(Metas.CoreApi) || cls.meta.has(Metas.CoreType)) {
                         isCore = true;
 
-                    } else if (Defines.Interp) {
+                    } else if (Defines.Interp.asBool() || Context.defined('hl') || Context.defined('cs')) {
                         switch cls.name {
                             case 'String' | 'Array':
                                 isCore = true;
@@ -905,7 +912,7 @@ class Default {
                                             not `Void` like a class ctor, adding it to the
                                             list will cause a false positive.
                                         **/
-                                        for (arg in args) list.push( arg.t );
+                                        for (arg in args) list.push( arg.t.unwrap() );
 
                                     case x:
                                         list.push( x );
@@ -926,7 +933,10 @@ class Default {
                     }
 
                     if (!isCore) {
-                        if (abs.impl != null) {
+                        if (abs.name == Default) {
+                            list.push( params[0] );
+
+                        } else if (abs.impl != null) {
                             list.push( TInst(abs.impl, params) );
 
                         } else {
@@ -945,7 +955,7 @@ class Default {
                     switch def.type {
                         case TAnonymous(_.get() => anon):
                             for (field in anon.fields) {
-                                list.push( field.type );
+                                list.push( field.type.unwrap() );
 
                             }
 
@@ -956,7 +966,7 @@ class Default {
 
                 case TAnonymous(_.get() => anon):
                     for (field in anon.fields) {
-                        list.push( field.type );
+                        list.push( field.type.unwrap() );
                     }
 
                 case x:
@@ -1038,6 +1048,17 @@ class Default {
             case AccNever: 'never';
             case AccCall: get?'get':'set';
             case _: 'default';
+        }
+    }
+
+    private static function unwrap(type:Type):Type {
+        return switch type {
+            case TAbstract(_.get() => {name:Default}, params):
+                params[0];
+
+            case _:
+                type;
+
         }
     }
 

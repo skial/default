@@ -46,7 +46,8 @@ class Main {
                 new DefaultBasicSpec(),
                 new DefaultEnumSpec(),
                 new DefaultClassSpec(),
-                //new DefaultTypedefSpec(),
+                new DefaultTypedefSpec(),
+                new typedefs.Issue2(),
             ])
 
         ).handle(Runner.exit);
