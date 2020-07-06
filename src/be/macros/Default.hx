@@ -42,7 +42,7 @@ class Default {
 
                 } else {
                     switch explosion.getIdentifier(type) {
-                        case null: Context.fatalError( Errors.UnexpectedExpression, pos );
+                        case null: Context.fatalError( 'E001: ' + Errors.UnexpectedExpression, pos );
                         case _name: macro @:pos(pos) $i{_name};
                     }
                     
@@ -439,11 +439,13 @@ class Default {
                 var objectFields:Array<ObjectField> = [];
                 var recursion:Null<Type> = detectCircularRef(type);
 
-                if (isDebug) {
+                if (recursion != null && isDebug) {
                     trace( 'recursion   :   ' + recursion.toString() );
                 }
                 
                 for (field in anon.fields) if (!field.isExtern && !field.meta.has(Metas.Optional)) {
+                    var originalType = field.type;
+
                     if (field.params.length == params.length) {
                         field.type = field.type.applyTypeParameters( field.params, params );
 
@@ -486,17 +488,17 @@ class Default {
 
                             case EFunction(FNamed(name, false), method):
                                 var paramNames = method.params.map( p -> p.name );
-                                switch field.type {
+                                switch [field.type, originalType] {
                                     // The returned expr is meant to be used as a closure.
-                                    case TFun(args, ret) if (method.args.length > args.length):
+                                    case [TFun(args, ret), TFun(oargs, oret)] if (method.args.length > args.length):
                                         var delay:Bool = false;
 
-                                        if (recursion != null) for (arg in method.args) {
+                                        /*if (recursion != null) for (arg in method.args) {
                                             /**
                                                 If the arg type is a type parameter or unifies with
                                                 `recursion`, delay building the expression.
                                             **/
-                                            switch arg.type {
+                                            /*switch arg.type {
                                                 case TPath({name: n}) if (paramNames.indexOf( n ) > -1):
                                                     delay = true;
                                                     break;
@@ -507,6 +509,41 @@ class Default {
                                                         break;
 
                                                     }
+
+                                            }
+
+                                        }*/
+
+                                        if (recursion != null) {
+                                            for (i in 0...args.length) {
+                                                if (args[i].t.unify(recursion) || oargs[i].t.unify(recursion)) {
+                                                    delay = true;
+                                                    break;
+
+                                                }
+
+                                            }
+
+                                            // The first lot of args have already been checked above, so skip ahead.
+                                            if (!delay) for (i in args.length...method.args.length) {
+                                                var arg = method.args[i];
+                                                /**
+                                                    If the arg type is a type parameter or unifies with
+                                                    `recursion`, delay building the expression.
+                                                **/
+                                                switch arg.type {
+                                                    case TPath({name: n}) if (paramNames.indexOf( n ) > -1):
+                                                        delay = true;
+                                                        break;
+
+                                                    case _:
+                                                        if (haxe.macro.ComplexTypeTools.toType( arg.type ).unify( recursion )) {
+                                                            delay = true;
+                                                            break;
+    
+                                                        }
+
+                                                }
 
                                             }
 
@@ -526,10 +563,25 @@ class Default {
                                             } else {
                                                 // Check if the type exists on the stack.
                                                 var outcome = method.args[i].type.toType();
+                                                
+                                                if (isDebug) {
+                                                    trace( field.name );
+                                                    trace( field.type );
+                                                    trace( name );
+                                                    trace( method );
+                                                    trace( method.args[i] );
+                                                    trace( i, args.length, method.args.length );
+                                                    trace( args );
+                                                    trace( method.args );
+                                                    trace( bindArgs );
+                                                    trace( stack.toString() );
+
+                                                }
+
                                                 switch outcome {
                                                     case Success(t):
                                                         switch stack.getIdentifier(t) {
-                                                            case null: Context.fatalError( Errors.UnexpectedExpression, pos );
+                                                            case null: Context.fatalError( 'E002: ' + Errors.UnexpectedExpression, pos );
                                                             case _name: bindArgs.push( macro $i{_name} );
                                                         }
     
@@ -594,7 +646,7 @@ class Default {
                                 trace( b );
 
                             }
-                            Context.fatalError( Errors.UnexpectedExpression, pos );
+                            Context.fatalError( 'E003: ' + Errors.UnexpectedExpression, pos );
                             null;
 
                     }
@@ -648,7 +700,7 @@ class Default {
                                                 case Success(t):
                                                     var _index = stack.typeIndex(t);
                                                     switch stack.getIdentifier(t) {
-                                                        case null: Context.fatalError( Errors.UnexpectedExpression, pos );
+                                                        case null: Context.fatalError( 'E004: ' + Errors.UnexpectedExpression, pos );
                                                         case _name: bindArgs.push( macro $i{_name} );
                                                     }
 

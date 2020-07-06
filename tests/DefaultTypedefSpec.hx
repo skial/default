@@ -18,11 +18,11 @@ typedef RefFunc = {
 }
 
 typedef A_ = {
-    function make<T>(v:T):A_;
+    dynamic function makeA<T>(v:T):A_;
 }
 
 typedef B_<T> = {>A_,
-    dynamic function b():T;
+    dynamic function callB():T;
 }
 
 typedef C = {
@@ -156,21 +156,21 @@ typedef J = {
         return asserts;
     }
 
-    /*public function testIssue17() {
+    public function testIssue17() {
         var f:Default<B_<Int>> = nil;
 
         #if !static
         @:nullSafety(Off)
         asserts.assert( f != null );
         @:nullSafety(Off)
-        asserts.assert( f.make(0) != null );
+        asserts.assert( f.makeA(0) != null );
         @:nullSafety(Off)
-        asserts.assert( f.make(10000).make(9) != null );
+        asserts.assert( f.makeA(10000).makeA(9) != null );
         #end
-        asserts.assert( f.b() == 0 );
+        asserts.assert( f.callB() == 0 );
 
-        asserts.done();
-        return asserts;
-    }*/
+        return asserts.done();
+        //return asserts;
+    }
 
 }

@@ -48,6 +48,7 @@ class Main {
                 new DefaultClassSpec(),
                 new DefaultTypedefSpec(),
                 new typedefs.Issue2(),
+                new typedefs.Issue3(),
             ])
 
         ).handle(Runner.exit);
