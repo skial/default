@@ -26,7 +26,9 @@ enum F {
     Ref(r:E);
 }
 
-@:nullSafety @:asserts class DefaultEnumSpec {
+@:asserts
+@:nullSafety
+class DefaultEnumSpec {
 
     public function new() {}
 
@@ -35,8 +37,7 @@ enum F {
         
         asserts.assert( d.get().match(Empty) );
 
-        asserts.done();
-        return asserts;
+        return asserts.done();
     }
 
     public function testEnum_args() {
@@ -44,17 +45,16 @@ enum F {
         
         asserts.assert( e.get().match(Arg3(0, '', .0)) );
 
-        asserts.done();
-        return asserts;
+        return asserts.done();
     }
 
+    @:nullSafety(Off)
     public function testEnum_loop() {
         var f:Default<F> = NIL;
         
         asserts.assert( f.get().match( Ref(Arg3(0, '', .0)) ) );
 
-        asserts.done();
-        return asserts;
+        return asserts.done();
     }
 
 }

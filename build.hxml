@@ -1,8 +1,9 @@
--lib thx.core
 -lib tink_core
 -lib tink_macro
 -lib tink_json
 -lib tink_unittest
+-lib haxe.macro.Metas
+-lib haxe.macro.Defines
 
 -cp src
 -cp tests
@@ -10,23 +11,49 @@
 #-debug
 -dce full
 
--D default_debug
+#-D default-debug
 -D analyzer-optimize
 -D eval-stack
--D nightly
+#-D dump=pretty
+-D tink_json_compact_code
 
 -main Main
 
 --each
 
--neko bin/default.n
-
---next
-
 -lib hxnodejs
-
 -js bin/default.js
 
 --next
 
+-neko bin/default.n
+
+--next
+
 -hl bin/default.hl
+
+--next
+
+-php bin/php
+
+--next
+
+-python bin/default.py
+
+--next
+-lib hxjava
+--jvm bin/jvm/test.jar
+
+--next
+# @see https://github.com/HaxeFoundation/haxe/issues/9675
+-lib hxjava
+--java bin/java
+
+--next
+# @see https://github.com/HaxeFoundation/haxe/issues/9669
+-lib hxcs
+--cs bin/cs
+
+--next
+
+--interp

@@ -1,7 +1,5 @@
 package ;
 
-import tink.unit.AssertionBuffer;
-
 import be.types.NIL;
 import be.types.Default;
 
@@ -18,11 +16,11 @@ typedef RefFunc = {
 }
 
 typedef A_ = {
-    function make<T>(v:T):A_;
+    dynamic function makeA<T>(v:T):A_;
 }
 
 typedef B_<T> = {>A_,
-    function b():T;
+    dynamic function callB():T;
 }
 
 typedef C = {
@@ -47,7 +45,9 @@ typedef J = {
     var a:I;
 }
 
-/*@:nullSafety*/ @:asserts class DefaultTypedefSpec {
+@:asserts
+/*@:nullSafety*/
+class DefaultTypedefSpec {
 
     public function new() {}
 
@@ -60,9 +60,8 @@ typedef J = {
         asserts.assert( foo.foo != null );
         #end
         asserts.assert( foo.foo == 0 );
-        asserts.done();
+        return asserts.done();
 
-        return asserts;
     }
 
     public function testCircular_typedef() {
@@ -74,8 +73,7 @@ typedef J = {
         asserts.assert( foo.ref != null );
         #end
         asserts.assert( foo.ref.ref == foo.ref.ref.ref.ref );
-        asserts.done();
-        return asserts;
+        return asserts.done();
     }
 
     #if !static
@@ -85,8 +83,7 @@ typedef J = {
         asserts.assert( foo != null );
         @:nullSafety(Off)
         asserts.assert( foo.ref() != null );
-        asserts.done();
-        return asserts;
+        return asserts.done();
     }
     #end
 
@@ -107,8 +104,7 @@ typedef J = {
         asserts.assert( .0 == c.e.c );
         asserts.assert( c.e.d.length == 0 );
 
-        asserts.done();
-        return asserts;
+        return asserts.done();
     }
 
     public function testTypedefAlias_simple() {
@@ -116,8 +112,7 @@ typedef J = {
 
         asserts.assert( '' == h );
 
-        asserts.done();
-        return asserts;
+        return asserts.done();
     }
 
     public function testTypedefAlias_descendant() {
@@ -125,8 +120,7 @@ typedef J = {
 
         asserts.assert( '' == i.a );
 
-        asserts.done();
-        return asserts;
+        return asserts.done();
     }
 
     public function testTypedefAlias_descendants() {
@@ -134,8 +128,7 @@ typedef J = {
 
         asserts.assert( '' == j.a.a );
 
-        asserts.done();
-        return asserts;
+        return asserts.done();
     }
 
     public function testTypedefAlias_module() {
@@ -143,8 +136,7 @@ typedef J = {
 
         asserts.assert( '' == f );
 
-        asserts.done();
-        return asserts;
+        return asserts.done();
     }
 
     public function testTypedefAlias_module_descendants() {
@@ -153,8 +145,7 @@ typedef J = {
         asserts.assert( '' == f.twins.a );
         asserts.assert( '' == f.twins.b );
 
-        asserts.done();
-        return asserts;
+        return asserts.done();
     }
 
     public function testIssue17() {
@@ -164,14 +155,13 @@ typedef J = {
         @:nullSafety(Off)
         asserts.assert( f != null );
         @:nullSafety(Off)
-        asserts.assert( f.make(0) != null );
+        asserts.assert( f.makeA(0) != null );
         @:nullSafety(Off)
-        asserts.assert( f.make(10000).make(9) != null );
+        asserts.assert( f.makeA(10000).makeA(9) != null );
         #end
-        asserts.assert( f.b() == 0 );
+        asserts.assert( f.callB() == 0 );
 
-        asserts.done();
-        return asserts;
+        return asserts.done();
     }
 
 }

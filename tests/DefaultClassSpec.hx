@@ -17,10 +17,10 @@ class A {
     public var d:Int;
     public var e:Default<Bool> = nil;
 
-    public function new(a:String, ?c:Int, ?d:Default<Int>) {
+    public function new(a:String, ?c:Int, ?d:Int) {
         this.a = a;
         this.c = c == null ? 10 : c;
-        this.d = d;
+        this.d = c == null ? 0  : d;
     }
 
 }
@@ -43,8 +43,7 @@ class A {
         asserts.assert( 0 == a.d );
         asserts.assert( false == a.e );
 
-        asserts.done();
-        return asserts;
+        return asserts.done();
     }
 
     public function testDefaultCtor_Public() {
@@ -52,12 +51,12 @@ class A {
 
         asserts.assert( '' == a.a );
         asserts.assert( '' == a.b );
-        asserts.assert( 0 == a.c );
+        // As `c` is optional, its not filled in by Default.
+        asserts.assert( 10 == a.c );
         asserts.assert( 0 == a.d );
         asserts.assert( false == a.e );
 
-        asserts.done();
-        return asserts;
+        return asserts.done();
     }
 
     public function testDefaultCtor_Private() {
@@ -67,8 +66,7 @@ class A {
         asserts.assert(b != null);
         #end
         asserts.assert(b.i == 100);
-        asserts.done();
-        return asserts;
+        return asserts.done();
     }
 
 }
