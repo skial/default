@@ -493,27 +493,6 @@ class Default {
                                     case [TFun(args, ret), TFun(oargs, oret)] if (method.args.length > args.length):
                                         var delay:Bool = false;
 
-                                        /*if (recursion != null) for (arg in method.args) {
-                                            /**
-                                                If the arg type is a type parameter or unifies with
-                                                `recursion`, delay building the expression.
-                                            **/
-                                            /*switch arg.type {
-                                                case TPath({name: n}) if (paramNames.indexOf( n ) > -1):
-                                                    delay = true;
-                                                    break;
-
-                                                case _:
-                                                    if (haxe.macro.ComplexTypeTools.toType( arg.type ).unify( recursion )) {
-                                                        delay = true;
-                                                        break;
-
-                                                    }
-
-                                            }
-
-                                        }*/
-
                                         if (recursion != null) {
                                             for (i in 0...args.length) {
                                                 if (args[i].t.unify(recursion) || oargs[i].t.unify(recursion)) {

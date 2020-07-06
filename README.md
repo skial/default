@@ -32,7 +32,7 @@ To be used instead of `null` when assigning to `Default<T>` values.
 abstract Default<T>(T) from T to T {
     // Unsafe access, does not check for nullness.
     function get():T;
-    // Replaces `NIL` with a valid value at compile time.
+    // Replaces `NIL` or `nil` with a valid value at compile time.
     @:from static macro function fromNIL<T>(v:ExprOf<NIL>):ExprOf<Default<T>>;
 }
 ```
