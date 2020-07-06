@@ -1,5 +1,9 @@
 package be.types;
 
+#if tink_json
+import tink.json.Representation;
+#end
+
 #if macro
 import haxe.macro.Expr;
 import haxe.macro.Defines;
@@ -15,14 +19,9 @@ using tink.CoreApi;
 @:forward
 abstract Default<T>(T) from T to T {
 
-    public #if !debug inline #end function new(v) this = v;
+    #if !debug inline #end function new(v) this = v;
     // Have to keep until a work around for https://github.com/HaxeFoundation/haxe/issues/9685 is found.
     public #if !debug inline #end function get():T return this;
-
-    public static #if !debug inline #end function fromSafeValue<T>(v:T):Default<T> {
-        return new Default<T>(v);
-    }
-    //public static #if !debug inline #end function of<T>(v:Null<T>, d:T):Default<T> return new Default<T>(v == null ? d : v);
 
     @:to public inline function toString():String return Std.string(this);
 
@@ -43,10 +42,15 @@ abstract Default<T>(T) from T to T {
     }
     #end
 
+    #if tink_json
+    @:to public function toTinkRep():Representation<T> return new Representation(this);
+    @:from public static function fromTinkRep<T>(v:Representation<T>):Default<T> return new Default(v.get());
+    #end
+
     #if macro
     public static function fromExpr(v:Expr):Expr {
         var value = be.macros.Default.typeToValue( Context.getExpectedType(), v.pos );
-        var result = macro @:pos(v.pos) new be.types.Default($value);
+        var result = macro @:pos(v.pos) @:privateAccess new be.types.Default($value);
         
         if (Defines.Debug && LocalDefines.DefaultVerbose) {
             trace( '---expr---' );
