@@ -42,3 +42,7 @@ abstract Default<T>(T) from T to T {
 Add `-debug` & `-D default_debug` for further, macro related traces to help w/ debugging.
 Add `-D inline_defaults` to `inline` the default values.
 
+### Notes
+
+If using with `tink_json`, you'll need to compile with `-D tink_json_compact_code` for both to work.
+
