@@ -8,10 +8,10 @@
     "version": "0.0.1-alpha",
     "url": "https://github.com/skial/default",
     "dependencies": {
-        "tink_core": "git:https://github.com/haxetink/tink_core#fa752b88f6757c18da92998aeab5523fe4f28853",
-        "tink_macro": "git:https://github.com/haxetink/tink_macro#328a8476a542489cbd240129cfc1fa5c0801e99e",
-        "haxe.macro.Metas": "git:https://github.com/skial/haxe.macro.Metas#78f17585218cdec22797e061225c970f28782a51",
-        "haxe.macro.Defines": "git:https://github.com/skial/haxe.macro.Defines#14933a2b77504bd800bdcd90a610a17c15252af8"
+        "tink_core": "2.0.1",
+        "tink_macro": "0.23.0",
+        "haxe.macro.Metas": "git:https://github.com/skial/haxe.macro.Metas#91cff97d2f5aa4e122fa336c16b55898a3dc5e8a",
+        "haxe.macro.Defines": "git:https://github.com/skial/haxe.macro.Defines#8428b3d7d2af939c52bdb0ced4c114524a5d9541"
     }
   }
   
